@@ -22,7 +22,7 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "first_name")
     private String firstName;
 
     @Column(nullable = false)

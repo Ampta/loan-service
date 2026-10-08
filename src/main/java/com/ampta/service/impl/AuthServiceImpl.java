@@ -1,13 +1,13 @@
-package com.ampta.service;
+package com.ampta.service.impl;
 
 import com.ampta.dto.request.RegisterRequest;
-import com.ampta.dto.response.LoginResponse;
 import com.ampta.dto.response.UserResponse;
 import com.ampta.entity.enums.Role;
 import com.ampta.entity.User;
 import com.ampta.exception.ResourceAlreadyExistsException;
 import com.ampta.exception.ResourceNotFoundException;
 import com.ampta.repository.UserRepository;
+import com.ampta.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
-public class AuthServiceImpl implements AuthService{
+public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;

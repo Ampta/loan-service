@@ -7,6 +7,7 @@ import com.ampta.dto.response.ApiResponse;
 import com.ampta.dto.response.LoginResponse;
 import com.ampta.dto.response.UserResponse;
 import com.ampta.service.AuthService;
+import com.ampta.utils.Endpoints;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/auth")
+@RequestMapping(Endpoints.V1_AUTH)
 public class AuthController {
 
     private final AuthService authService;
