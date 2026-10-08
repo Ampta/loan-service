@@ -6,5 +6,5 @@ import com.ampta.dto.response.UserResponse;
 
 public interface AuthService {
     UserResponse register(RegisterRequest request);
-    LoginResponse login(String email, String password);
+    UserResponse login(String email, String password);
 }
