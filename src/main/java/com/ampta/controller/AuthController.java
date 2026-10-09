@@ -37,10 +37,10 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<UserResponse>> registerUser(@Valid @RequestBody LoginRequest request){
+    public ResponseEntity<ApiResponse<LoginResponse>> registerUser(@Valid @RequestBody LoginRequest request){
         log.info("REST request to login user with email: {}", request);
 
-        UserResponse response = authService.login(request.getEmail(), request.getPassword());
+        LoginResponse response = authService.login(request.getEmail(), request.getPassword());
         return new ResponseEntity<>(new ApiResponse<>(true, "User login successfully", response), HttpStatus.CREATED);
     }
 

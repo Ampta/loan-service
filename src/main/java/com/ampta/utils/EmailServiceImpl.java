@@ -155,5 +155,35 @@ public class EmailServiceImpl implements EmailService{
 
         sendHtmlEmail(toEmail, subject, htmlBody);
     }
+
+    @Override
+    @Async
+    public void sendRegistrationSuccessEmail(String toEmail, String name, String password, String verificationToken) {
+        String subject = "Welcome to Ampta Loan Service - Account Verification";
+        String verifyUrl = "http://localhost:8080/api/v1/auth/verify-email?token=" + verificationToken;
+
+        String htmlBody = """
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                        <h2 style="color: #2b6cb0;">Welcome to Ampta, %s!</h2>
+                        <p>Thank you for registering with Ampta Loan Service. Your login credentials are:</p>
+                        <div style="background-color: #f7fafc; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                            <p style="margin: 5px 0;"><strong>Email:</strong> %s</p>
+                            <p style="margin: 5px 0;"><strong>Password:</strong> %s</p>
+                        </div>
+                        <p>Click the link below to verify your email address:</p>
+                        <div style="text-align: center; margin: 20px 0;">
+                            <a href="%s" style="background-color: #2b6cb0; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
+                        </div>
+                        <p style="font-size: 0.85em; color: #718096;">Or copy this link in your browser: %s</p>
+                    </div>
+                </body>
+                </html>
+                """.formatted(name != null ? name : "Customer", toEmail, password, verifyUrl, verifyUrl);
+
+        sendHtmlEmail(toEmail, subject, htmlBody);
+    }
 }
 
