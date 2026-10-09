@@ -4,59 +4,49 @@ import com.ampta.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
+
 
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
-    // ===============================
-    // Resource not found - 404
-    // ===============================
-
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(
-            ResourceNotFoundException ex) {
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(
-                        new ApiResponse<>(
-                                false,
-                                ex.getMessage(),
-                                null
-                        )
-                );
+    public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        log.error("Resource not found exception: {}", ex.getMessage());
+        ApiResponse<Void> response = new ApiResponse<>(false, ex.getMessage(), null);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
-
-    // ===============================
-    // KYC already approved - 409
-    // ===============================
-
-    @ExceptionHandler(KycDocumentAlreadyApprovedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAlreadyApproved(
-            KycDocumentAlreadyApprovedException ex) {
-
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(
-                        new ApiResponse<>(
-                                false,
-                                ex.getMessage(),
-                                null
-                        )
-                );
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResourceAlreadyExistsException(ResourceAlreadyExistsException ex) {
+        log.error("Resource already exists exception: {}", ex.getMessage());
+        ApiResponse<Void> response = new ApiResponse<>(false, ex.getMessage(), null);
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(
+            MethodArgumentNotValidException ex) {
+        log.error("Validation exception occurred");
+        Map<String, String> errors = new HashMap<>();
 
-    // ===============================
-    // Rejection reason missing - 400
-    // ===============================
+        ex.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+
+        ApiResponse<Map<String, String>> response = new ApiResponse<>(false, "Validation failed", errors);
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 
     @ExceptionHandler(RejectionReasonRequiredException.class)
     public ResponseEntity<ApiResponse<Void>> handleRejectionReason(
@@ -94,60 +84,6 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
-
-
-    // ===============================
-    // Validation error - 400
-    // ===============================
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidation(
-            MethodArgumentNotValidException ex) {
-
-        String message = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error ->
-                        error.getField() + ": " + error.getDefaultMessage()
-                )
-                .collect(Collectors.joining(", "));
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(
-                        new ApiResponse<>(
-                                false,
-                                message,
-                                null
-                        )
-                );
-    }
-
-
-    // ===============================
-    // Illegal argument - 400
-    // ===============================
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(
-            IllegalArgumentException ex) {
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(
-                        new ApiResponse<>(
-                                false,
-                                ex.getMessage(),
-                                null
-                        )
-                );
-    }
-
-
-    // ===============================
-    // CIBIL
-    // ===============================
-
     @ExceptionHandler(CibilReportNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleCibilReportNotFound(
             CibilReportNotFoundException ex) {
@@ -164,27 +100,13 @@ public class GlobalExceptionHandler {
     }
 
 
-    // ===============================
-    // Unexpected error - 500
-    // ===============================
+
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGenericException(
-            Exception ex) {
-
-        log.error(
-                "Unexpected application error",
-                ex
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(
-                        new ApiResponse<>(
-                                false,
-                                "An unexpected error occurred",
-                                null
-                        )
-                );
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        log.error("Unhandled exception occurred", ex);
+        ApiResponse<Void> response = new ApiResponse<>(false, "An unexpected error occurred: " + ex.getMessage(), null);
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 }

@@ -1,5 +1,6 @@
 package com.ampta.entity;
 
+import com.ampta.entity.enums.EmployeeType;
 import com.ampta.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

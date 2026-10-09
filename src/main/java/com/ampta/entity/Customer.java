@@ -2,7 +2,10 @@ package com.ampta.entity;
 
 import com.ampta.entity.enums.EmployeeType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "customers")
@@ -13,7 +16,7 @@ import lombok.*;
 public class Customer extends BaseEntity{
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long customerId;
     private String firstName;
     private String lastName;
