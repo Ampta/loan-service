@@ -7,4 +7,7 @@ public interface EmailService {
     void sendEmployeeCreatedNotification(String toEmail, String name, String department, Double salary);
     void send2FaRecoveryOtp(String toEmail, String name, String otp);
     void sendPasswordResetEmail(String toEmail, String name, String resetToken);
+
+    void sendRegistrationSuccessEmail(String toEmail, String name, String password, String verificationToken);
+
 }
