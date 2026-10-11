@@ -50,7 +50,6 @@ public class AuthServiceImpl implements AuthService {
         User user = modelMapper.map(request, User.class);
 
         // TODO: ENCODE PASSWORD
-
         user.setRole(Role.CUSTOMER);
         user.setMfaEnabled(false);
         User savedUser = userRepository.save(user);
