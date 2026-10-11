@@ -1,7 +1,7 @@
 package com.ampta.repository;
 
 import com.ampta.entity.LoanDeal;
-import com.ampta.entity.LoanStatus;
+import com.ampta.entity.enums.LoanStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

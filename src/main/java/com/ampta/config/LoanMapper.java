@@ -1,37 +1,42 @@
-package com.ampta.config;
+
+        package com.ampta.config;
 
 import com.ampta.dto.request.LoanApplicationRequest;
-import com.ampta.dto.request.LoanApplicationResponse;
+import com.ampta.dto.response.LoanApplicationResponse;
 import com.ampta.entity.LoanDeal;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LoanMapper {
 
-    private final ModelMapper modelMapper;
+    public LoanDeal toEntity(LoanApplicationRequest request) {
 
-    public LoanMapper(ModelMapper modelMapper) {
-        this.modelMapper = modelMapper;
+        return LoanDeal.builder()
+                .loanType(request.getLoanType())
+                .loanAmount(request.getLoanAmount())
+                .tenureMonths(request.getTenureMonths())
+                .emiDay(request.getEmiDay())
+                .bankName(request.getBankName())
+                .bankAccountNumber(request.getBankAccountNumber())
+                .ifscCode(request.getIfscCode())
+                .build();
     }
 
-    // Request DTO → Entity
-    public LoanDeal toEntity(
-            LoanApplicationRequest request) {
+    public LoanApplicationResponse toResponse(LoanDeal loanDeal) {
 
-        return modelMapper.map(
-                request,
-                LoanDeal.class
-        );
-    }
-
-    // Entity → Response DTO
-    public LoanApplicationResponse toResponse(
-            LoanDeal loanDeal) {
-
-        return modelMapper.map(
-                loanDeal,
-                LoanApplicationResponse.class
-        );
+        return LoanApplicationResponse.builder()
+                .dealId(loanDeal.getDealId())
+                .userId(loanDeal.getUserId())
+                .loanType(loanDeal.getLoanType())
+                .loanAmount(loanDeal.getLoanAmount())
+                .interestRate(loanDeal.getInterestRate())
+                .tenureMonths(loanDeal.getTenureMonths())
+                .emiAmount(loanDeal.getEmiAmount())
+                .emiDay(loanDeal.getEmiDay())
+                .bankName(loanDeal.getBankName())
+                .bankAccountNumber(loanDeal.getBankAccountNumber())
+                .ifscCode(loanDeal.getIfscCode())
+                .status(loanDeal.getStatus())
+                .build();
     }
 }

@@ -2,30 +2,31 @@ package com.ampta.config;
 
 import com.ampta.dto.response.LoanReviewResponse;
 import com.ampta.entity.DealReview;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LoanReviewMapper {
 
-    private final ModelMapper modelMapper;
+    public LoanReviewResponse toResponse(DealReview dealReview) {
 
-    public LoanReviewMapper(ModelMapper modelMapper)
-    {
-        this.modelMapper=modelMapper;
-    }
+        LoanReviewResponse response = new LoanReviewResponse();
 
-    public LoanReviewResponse toResponse(DealReview dealReview)
-    {
-        LoanReviewResponse response=
-                modelMapper.map(dealReview,LoanReviewResponse.class);
+        if (dealReview.getLoanDeal() != null) {
+            response.setDealId(
+                    dealReview.getLoanDeal().getDealId()
+            );
 
-        response.setDealId(dealReview.getLoanDeal().getDealId());
+            response.setLoanStatus(
+                    dealReview.getLoanDeal().getStatus()
+            );
+        }
 
-        response.setOfficerId(dealReview.getOfficer().getUserId());
+        if (dealReview.getOfficer() != null) {
+            response.setOfficerId(
+                    dealReview.getOfficer().getUserId()
+            );
+        }
 
-        response.setLoanStatus(dealReview.getLoanDeal().getStatus());
-
-        return  response;
+        return response;
     }
 }

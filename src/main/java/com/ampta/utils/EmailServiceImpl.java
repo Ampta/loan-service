@@ -159,6 +159,195 @@ public class EmailServiceImpl implements EmailService{
         sendHtmlEmail(toEmail, subject, htmlBody);
     }
 
+    @Override
+    @Async
+    public void sendLoanApprovedEmail(
+            String toEmail,
+            String name,
+            Long dealId,
+            Double approvedAmount
+    ) {
+        String subject = "Loan Approved - Next Process Pending";
+
+        String customerName = name != null ? name : "Customer";
+
+        String amountText = approvedAmount != null
+                ? String.format("%.2f", approvedAmount)
+                : "Not available";
+
+        String htmlBody = """
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;
+                            border: 1px solid #e0e0e0; border-radius: 8px;">
+
+                    <h2 style="color: #2f855a;">
+                        Loan Approved Successfully
+                    </h2>
+
+                    <p>Hello, %s!</p>
+
+                    <p>
+                        We are pleased to inform you that your loan application
+                        has been <strong>approved</strong>.
+                    </p>
+
+                    <div style="background-color: #f0fff4; padding: 15px;
+                                border-radius: 6px; margin: 20px 0;">
+
+                        <p><strong>Loan Deal ID:</strong> %s</p>
+                        <p><strong>Approved Amount:</strong> ₹%s</p>
+                        <p><strong>Loan Status:</strong>
+                            <span style="color: #2f855a; font-weight: bold;">
+                                APPROVED
+                            </span>
+                        </p>
+                        <p><strong>Next Process:</strong>
+                            <span style="color: #d69e2e; font-weight: bold;">
+                                PENDING
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        The next process is currently pending and will be
+                        initiated by our team.
+                    </p>
+
+                    <p>
+                        You will receive another notification when the next
+                        process is completed or requires your action.
+                    </p>
+
+                    <hr style="border: none; border-top: 1px solid #e0e0e0;
+                               margin: 20px 0;" />
+
+                    <p style="font-size: 0.8em; color: #718096;">
+                        This is an automated message. Please do not reply directly.
+                    </p>
+                </div>
+            </body>
+            </html>
+            """.formatted(customerName, dealId, amountText);
+
+        sendHtmlEmail(toEmail, subject, htmlBody);
+    }
+
+
+    @Override
+    @Async
+    public void sendLoanDisbursementEmail(
+            String toEmail,
+            String name,
+            Long dealId,
+            Double disbursedAmount,
+            String loanAccountNo,
+            String bankPartner,
+            String disbursementDate
+    ) {
+
+        String subject = "Loan Amount Disbursed Successfully";
+
+        String customerName = name != null ? name : "Customer";
+
+        String amountText = disbursedAmount != null
+                ? String.format(java.util.Locale.US, "%.2f", disbursedAmount)
+                : "Not available";
+
+        String accountNumber = loanAccountNo != null
+                ? loanAccountNo
+                : "Not available";
+
+        String bankName = bankPartner != null
+                ? bankPartner
+                : "Not available";
+
+        String dateText = disbursementDate != null
+                ? disbursementDate
+                : "Not available";
+
+        String htmlBody = """
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;
+                        border: 1px solid #e0e0e0; border-radius: 8px;">
+
+                <h2 style="color: #2f855a;">
+                    Loan Amount Disbursed Successfully
+                </h2>
+
+                <p>Hello, %s!</p>
+
+                <p>
+                    We are pleased to inform you that your loan amount
+                    has been <strong>disbursed successfully</strong>
+                    and your loan account has been created.
+                </p>
+
+                <div style="background-color: #f0fff4; padding: 15px;
+                            border-radius: 6px; margin: 20px 0;">
+
+                    <p><strong>Loan Deal ID:</strong> %s</p>
+                    <p><strong>Loan Account Number:</strong> %s</p>
+                    <p><strong>Disbursed Amount:</strong> ₹%s</p>
+                    <p><strong>Bank Partner:</strong> %s</p>
+                    <p><strong>Disbursement Date:</strong> %s</p>
+
+                    <p>
+                        <strong>Loan Status:</strong>
+                        <span style="color: #2f855a; font-weight: bold;">
+                            DISBURSED
+                        </span>
+                    </p>
+                </div>
+
+                <p>
+                    Please keep your loan account number for future
+                    reference. Your repayment obligations will be
+                    governed by your loan agreement and repayment schedule.
+                </p>
+
+                <p>
+                    If you have any questions, please contact our
+                    loan management team.
+                </p>
+
+                <hr style="border: none; border-top: 1px solid #e0e0e0;
+                           margin: 20px 0;" />
+
+                <p style="font-size: 0.8em; color: #718096;">
+                    This is an automated message. Please do not reply directly.
+                </p>
+            </div>
+        </body>
+        </html>
+        """.formatted(
+                escapeHtml(customerName),
+                dealId,
+                escapeHtml(accountNumber),
+                amountText,
+                escapeHtml(bankName),
+                escapeHtml(dateText)
+        );
+
+        sendHtmlEmail(toEmail, subject, htmlBody);
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) {
+            return "Not available";
+        }
+
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
 
     @Override
     @Async
@@ -248,5 +437,7 @@ public class EmailServiceImpl implements EmailService{
         // Reuse the existing email implementation
         sendSimpleEmail(toEmail, subject, body);
     }
+
+
 }
 

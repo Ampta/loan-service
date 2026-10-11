@@ -1,4 +1,4 @@
-package com.ampta.entity;
+package com.ampta.entity.enums;
 
 public enum LoanStatus {
 
@@ -8,5 +8,6 @@ public enum LoanStatus {
     REJECTED,
     SANCTIONED,
     DISBURSEMENT_PENDING,
-    DISBURSED
+    DISBURSED,
+    GENERATED
 }

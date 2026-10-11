@@ -1,6 +1,6 @@
 package com.ampta.dto.response;
 
-import com.ampta.entity.LoanStatus;
+import com.ampta.entity.enums.LoanStatus;
 import lombok.*;
 
 @Data

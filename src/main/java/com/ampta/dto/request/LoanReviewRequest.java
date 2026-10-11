@@ -1,6 +1,6 @@
 package com.ampta.dto.request;
 
-import com.ampta.entity.LoanStatus;
+import com.ampta.entity.enums.LoanStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
