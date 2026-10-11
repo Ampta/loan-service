@@ -8,31 +8,31 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "cibil_report")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "user")
-public class CibilReport {
+@ToString(exclude = "customer")
+public class CibilReport extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "cibil_report_id")
+//    @Column(name = "CibilReportId")
     private Long cibilReportId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "CustomerId", nullable = false)
+    private Customer customer;
 
-    @Column(name = "pan_no", nullable = false, length = 10)
+    @Column(length = 20)
     private String panNumber;
 
-    @Column(name = "cibil_score", nullable = false)
+//    @Column(name = "CibilScore")
     private Integer cibilScore;
 
-    @Column(name = "check_date", nullable = false)
+//    @Column(name = "CheckDate")
     private Instant checkDate;
 }

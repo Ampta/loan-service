@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -18,7 +19,7 @@ public class CibilScoreResponse {
 
     private String panNumber;
 
-    private Integer cibilScore;
+    private String cibilScore;
 
     private CibilStatus cibilStatus;
 
