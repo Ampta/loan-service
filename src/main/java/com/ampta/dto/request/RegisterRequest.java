@@ -46,6 +46,10 @@ public class RegisterRequest {
     @PositiveOrZero(message = "Monthly spending cannot be negative")
     private Double monthlySpending;
 
+    private Integer age;
+    private String address;
+
+
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 30, message = "Password must be between 8 and 30 characters")
     private String password;

@@ -1,5 +1,6 @@
 package com.ampta.utils;
 
+import com.ampta.entity.enums.DocumentStatus;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -154,6 +157,96 @@ public class EmailServiceImpl implements EmailService{
                 """.formatted(name != null ? name : toEmail, resetLink, resetToken);
 
         sendHtmlEmail(toEmail, subject, htmlBody);
+    }
+
+
+    @Override
+    @Async
+    public void sendRegistrationSuccessEmail(String toEmail, String name, String password, String verificationToken) {
+        String subject = "Welcome to Ampta Loan Service - Account Verification";
+        String verifyUrl = "http://localhost:8080/api/v1/auth/verify-email?token=" + verificationToken;
+
+        String htmlBody = """
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                        <h2 style="color: #2b6cb0;">Welcome to Ampta, %s!</h2>
+                        <p>Thank you for registering with Ampta Loan Service. Your login credentials are:</p>
+                        <div style="background-color: #f7fafc; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                            <p style="margin: 5px 0;"><strong>Email:</strong> %s</p>
+                            <p style="margin: 5px 0;"><strong>Password:</strong> %s</p>
+                        </div>
+                        <p>Click the link below to verify your email address:</p>
+                        <div style="text-align: center; margin: 20px 0;">
+                            <a href="%s" style="background-color: #2b6cb0; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
+                        </div>
+                        <p style="font-size: 0.85em; color: #718096;">Or copy this link in your browser: %s</p>
+                    </div>
+                </body>
+                </html>
+                """.formatted(name != null ? name : "Customer", toEmail, password, verifyUrl, verifyUrl);
+
+        sendHtmlEmail(toEmail, subject, htmlBody);
+    }
+
+
+    @Override
+    @Async
+    public void sendBulkKycStatusEmail(
+            String toEmail,
+            String name,
+            List<String> documentTypes,
+            DocumentStatus status,
+            String rejectionReason) {
+
+        if (status != DocumentStatus.APPROVED
+                && status != DocumentStatus.REJECTED) {
+            log.warn("Invalid KYC email status: {}", status);
+            return;
+        }
+
+        String customerName =
+                (name == null || name.isBlank()) ? "Customer" : name;
+
+        String documents = String.join(", ", documentTypes);
+
+        String subject;
+        String body;
+
+        if (status == DocumentStatus.APPROVED) {
+
+            subject = "KYC Documents Approved";
+
+            body = "Hello " + customerName + ",\n\n"
+                    + "Your selected KYC documents have been approved.\n\n"
+                    + "Documents: " + documents + "\n"
+                    + "Status: APPROVED\n\n"
+                    + "No further action is required for these documents.\n\n"
+                    + "Regards,\n"
+                    + "LoanApp Team";
+
+        } else {
+
+            if (rejectionReason == null || rejectionReason.isBlank()) {
+                log.warn("Cannot send KYC rejection email without a reason");
+                return;
+            }
+
+            subject = "KYC Documents Rejected";
+
+            body = "Hello " + customerName + ",\n\n"
+                    + "Your selected KYC documents have been rejected.\n\n"
+                    + "Documents: " + documents + "\n"
+                    + "Status: REJECTED\n"
+                    + "Reason: " + rejectionReason.trim() + "\n\n"
+                    + "Please review the reason and upload corrected documents.\n\n"
+                    + "Regards,\n"
+                    + "LoanApp Team";
+        }
+
+        // Reuse the existing email implementation
+        sendSimpleEmail(toEmail, subject, body);
     }
 }
 
