@@ -12,9 +12,8 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class EmiScheduleResponse {
-    private String loanAccountId;
+    private Long loanAccountId;
     private Long emiScheduleId;
     private Long installmentNo;
     private LocalDate disbursementDate;
@@ -27,5 +26,4 @@ public class EmiScheduleResponse {
     private Double emiAmount;
     private String paymentStatus;
     private LocalDateTime paidDate;
-
 }

@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class PenaltyChargeResponse {
-    private Integer penaltyChargeId;
-    private Integer emiScheduleId;
-    private Integer loanAccountId;
-    private BigDecimal penaltyAmount;
+    private Long penaltyChargeId;
+    private Long emiScheduleId;
+    private Long loanAccountId;
+    private Double penaltyAmount;
     private String reason;
     private String status;
     private LocalDateTime createdAt;

@@ -1,15 +1,13 @@
 package com.ampta.dto.request;
-import java.time.LocalDate;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDate;
 
 @Getter
 @Setter
 public class EmiScheduleRequest {
 
-    private Integer loanAccountId;
-
+    @NotNull(message = "Loan account ID is required")
+    private Long loanAccountId;
 }
