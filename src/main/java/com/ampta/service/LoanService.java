@@ -1,7 +1,8 @@
 package com.ampta.service;
 
 import com.ampta.dto.request.LoanApplicationRequest;
-import com.ampta.dto.request.LoanApplicationResponse;
+import com.ampta.dto.response.LoanApplicationResponse;
+
 
 import java.util.List;
 

@@ -1,8 +1,8 @@
 package com.ampta.controller;
 
 import com.ampta.dto.request.LoanApplicationRequest;
-import com.ampta.dto.request.LoanApplicationResponse;
 import com.ampta.dto.response.ApiResponse;
+import com.ampta.dto.response.LoanApplicationResponse;
 import com.ampta.entity.LoanDeal;
 import com.ampta.service.impl.LoanServiceImpl;
 import lombok.RequiredArgsConstructor;

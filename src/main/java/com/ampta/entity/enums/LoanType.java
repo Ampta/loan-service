@@ -1,4 +1,4 @@
-package com.ampta.entity;
+package com.ampta.entity.enums;
 
 public enum LoanType {
 
