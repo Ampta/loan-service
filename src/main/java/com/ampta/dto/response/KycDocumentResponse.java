@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class KycDocumentResponse {
 
     private Long documentId;

@@ -11,6 +11,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -191,162 +193,60 @@ public class EmailServiceImpl implements EmailService{
 
     @Override
     @Async
-    public void sendKycStatusEmail(
+    public void sendBulkKycStatusEmail(
             String toEmail,
             String name,
-            String documentType,
+            List<String> documentTypes,
             DocumentStatus status,
             String rejectionReason) {
 
-        String subject;
-        String htmlBody;
-
-        String displayName = name != null ? name : toEmail;
-
-        if (status == DocumentStatus.APPROVED) {
-
-            subject = "KYC Document Approved";
-
-            htmlBody = """
-                <!DOCTYPE html>
-                <html>
-                <body style="font-family: Arial, sans-serif;
-                             line-height: 1.6;
-                             color: #333;">
-
-                    <div style="max-width: 600px;
-                                margin: 0 auto;
-                                padding: 20px;
-                                border: 1px solid #e0e0e0;
-                                border-radius: 8px;">
-
-                        <h2 style="color: #2f855a;">
-                            KYC Document Approved
-                        </h2>
-
-                        <p>Hello, %s!</p>
-
-                        <p>
-                            Your KYC document has been successfully
-                            reviewed and approved.
-                        </p>
-
-                        <div style="background-color: #f0fff4;
-                                    padding: 15px;
-                                    border-radius: 6px;
-                                    margin: 20px 0;">
-
-                            <p style="margin: 5px 0;">
-                                <strong>Document Type:</strong> %s
-                            </p>
-
-                            <p style="margin: 5px 0;">
-                                <strong>Status:</strong> APPROVED
-                            </p>
-                        </div>
-
-                        <p>
-                            No further action is required for this document.
-                        </p>
-
-                        <hr style="border: none;
-                                   border-top: 1px solid #e0e0e0;
-                                   margin: 20px 0;" />
-
-                        <p style="font-size: 0.8em;
-                                  color: #718096;">
-                            This is an automated notification.
-                        </p>
-
-                    </div>
-                </body>
-                </html>
-                """.formatted(
-                    displayName,
-                    documentType
-            );
-
-        } else if (status == DocumentStatus.REJECTED) {
-
-            subject = "KYC Document Rejected";
-
-            htmlBody = """
-                <!DOCTYPE html>
-                <html>
-                <body style="font-family: Arial, sans-serif;
-                             line-height: 1.6;
-                             color: #333;">
-
-                    <div style="max-width: 600px;
-                                margin: 0 auto;
-                                padding: 20px;
-                                border: 1px solid #e0e0e0;
-                                border-radius: 8px;">
-
-                        <h2 style="color: #c53030;">
-                            KYC Document Rejected
-                        </h2>
-
-                        <p>Hello, %s!</p>
-
-                        <p>
-                            Your KYC document has been reviewed
-                            and rejected.
-                        </p>
-
-                        <div style="background-color: #fff5f5;
-                                    padding: 15px;
-                                    border-radius: 6px;
-                                    margin: 20px 0;">
-
-                            <p style="margin: 5px 0;">
-                                <strong>Document Type:</strong> %s
-                            </p>
-
-                            <p style="margin: 5px 0;">
-                                <strong>Status:</strong> REJECTED
-                            </p>
-
-                            <p style="margin: 5px 0;">
-                                <strong>Reason:</strong> %s
-                            </p>
-
-                        </div>
-
-                        <p>
-                            Please review the rejection reason and
-                            submit a new document if required.
-                        </p>
-
-                        <hr style="border: none;
-                                   border-top: 1px solid #e0e0e0;
-                                   margin: 20px 0;" />
-
-                        <p style="font-size: 0.8em;
-                                  color: #718096;">
-                            This is an automated notification.
-                        </p>
-
-                    </div>
-                </body>
-                </html>
-                """.formatted(
-                    displayName,
-                    documentType,
-                    rejectionReason != null
-                            ? rejectionReason
-                            : "Not specified"
-            );
-
-        } else {
+        if (status != DocumentStatus.APPROVED
+                && status != DocumentStatus.REJECTED) {
+            log.warn("Invalid KYC email status: {}", status);
             return;
         }
 
-        sendHtmlEmail(
-                toEmail,
-                subject,
-                htmlBody
-        );
+        String customerName =
+                (name == null || name.isBlank()) ? "Customer" : name;
+
+        String documents = String.join(", ", documentTypes);
+
+        String subject;
+        String body;
+
+        if (status == DocumentStatus.APPROVED) {
+
+            subject = "KYC Documents Approved";
+
+            body = "Hello " + customerName + ",\n\n"
+                    + "Your selected KYC documents have been approved.\n\n"
+                    + "Documents: " + documents + "\n"
+                    + "Status: APPROVED\n\n"
+                    + "No further action is required for these documents.\n\n"
+                    + "Regards,\n"
+                    + "LoanApp Team";
+
+        } else {
+
+            if (rejectionReason == null || rejectionReason.isBlank()) {
+                log.warn("Cannot send KYC rejection email without a reason");
+                return;
+            }
+
+            subject = "KYC Documents Rejected";
+
+            body = "Hello " + customerName + ",\n\n"
+                    + "Your selected KYC documents have been rejected.\n\n"
+                    + "Documents: " + documents + "\n"
+                    + "Status: REJECTED\n"
+                    + "Reason: " + rejectionReason.trim() + "\n\n"
+                    + "Please review the reason and upload corrected documents.\n\n"
+                    + "Regards,\n"
+                    + "LoanApp Team";
+        }
+
+        // Reuse the existing email implementation
+        sendSimpleEmail(toEmail, subject, body);
     }
 }
 

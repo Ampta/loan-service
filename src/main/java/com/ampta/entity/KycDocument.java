@@ -15,8 +15,8 @@ public class KycDocument extends BaseEntity{
     private Long documentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "userId", nullable = false)
-    private User user;
+    @JoinColumn(name = "customerId", nullable = false)
+    private Customer customer;
 
     @Column(nullable = false)
     private String documentType;
@@ -25,4 +25,7 @@ public class KycDocument extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     private DocumentStatus verificationStatus;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
 }
