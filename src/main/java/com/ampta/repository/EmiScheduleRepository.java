@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface EmiScheduleRepository extends JpaRepository<EmiSchedule, Integer> {
     Page<EmiSchedule> findByLoanAccount_LoanAccountId(
-            Integer loanAccountId,
+            Long loanAccountId,
             Pageable pageable
     );
     List<EmiSchedule> findByLoanAccount_LoanAccountIdAndPaymentStatusOrderByInstallmentNoAsc(Integer loanAccountId, String pending);

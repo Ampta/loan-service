@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class LoanPaymentRequest {
     @NotNull(message = "Loan Account ID is required")
-    private Integer loanAccountId;
+    private Long loanAccountId;
 
     private Integer emiScheduleId;
 
