@@ -34,8 +34,7 @@ public class LoanAccount {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer loanAccountId;
-
+    private Long loanAccountId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
