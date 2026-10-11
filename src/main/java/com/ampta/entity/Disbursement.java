@@ -8,15 +8,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "disbursements",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "UK_Disbursements_DealId",
-                        columnNames = "deal_id"
-                )
-        }
-)
 @Getter
 @Setter
 @NoArgsConstructor
