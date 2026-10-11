@@ -16,4 +16,9 @@ public interface CibilReportRepository
     findTopByCustomer_CustomerIdOrderByCheckDateDesc(
             Long customerId
     );
+
+    Optional<CibilReport>
+    findFirstByCustomer_CustomerIdOrderByCheckDateDesc(
+            Long customerId
+    );
 }
