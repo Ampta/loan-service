@@ -1,14 +1,18 @@
 
-        package com.ampta.service.impl;
+package com.ampta.service.impl;
 
 import com.ampta.config.LoanMapper;
 import com.ampta.dto.request.LoanApplicationRequest;
 import com.ampta.dto.response.LoanApplicationResponse;
+import com.ampta.entity.Customer;
 import com.ampta.entity.LoanDeal;
+import com.ampta.entity.ScoreCard;
 import com.ampta.entity.enums.LoanStatus;
 import com.ampta.entity.enums.LoanType;
 import com.ampta.exception.LoanNotFoundException;
+import com.ampta.repository.CustomerRepository;
 import com.ampta.repository.LoanDealRepository;
+import com.ampta.repository.ScoreCardRepository;
 import com.ampta.service.LoanService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,8 +26,14 @@ import java.util.List;
 public class LoanServiceImpl implements LoanService {
 
     private final LoanDealRepository loanDealRepository;
+
+    private final CustomerRepository customerRepository;
+
     private final EmiCalculationServiceImpl emiCalculationService;
+
     private final LoanMapper loanMapper;
+
+    private final ScoreCardRepository scoreCardRepository;
 
     private double getInterestRate(LoanType loanType) {
 
@@ -36,25 +46,35 @@ public class LoanServiceImpl implements LoanService {
         }
 
         throw new IllegalArgumentException(
-                "This loan type is not available: " + loanType);
+                "This loan type is not available: " + loanType
+        );
     }
 
     @Override
     @Transactional
     public LoanApplicationResponse applyLoan(
-            Long userId,
+            Long customerId,
             LoanApplicationRequest request) {
 
+        // 1. Find customer using CustomerRepository
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Customer not found with ID: " + customerId
+                        )
+                );
+
+        // 2. Convert request DTO to LoanDeal entity
         LoanDeal loanDeal = loanMapper.toEntity(request);
 
-        // Set the logged-in customer's ID
-        loanDeal.setUserId(userId);
+        // 3. Set Customer instead of User ID
+        loanDeal.setCustomer(customer);
 
-        // Set interest rate
+        // 4. Set interest rate
         double interestRate = getInterestRate(request.getLoanType());
         loanDeal.setInterestRate(interestRate);
 
-        // Calculate EMI
+        // 5. Calculate EMI
         double emi = emiCalculationService.calculateEmi(
                 request.getLoanAmount(),
                 interestRate,
@@ -63,24 +83,73 @@ public class LoanServiceImpl implements LoanService {
 
         loanDeal.setEmiAmount(emi);
 
-        // Amount is assigned after approval
+        // 6. Set approved amount
         loanDeal.setApprovedAmount(request.getLoanAmount());
 
-        // Initial loan status
+        // 7. Set initial status
         loanDeal.setStatus(LoanStatus.SUBMITTED);
 
-        // Save loan application
+        // 8. Save loan application
         LoanDeal savedDeal = loanDealRepository.save(loanDeal);
 
+        // 9. Return response
         return loanMapper.toResponse(savedDeal);
     }
+
+
+//    @Override
+//    @Transactional
+//    public LoanApplicationResponse applyLoan(Long customerId,LoanApplicationRequest request)
+//    {
+//        Customer customer=customerRepository.findById(customerId)
+//                .orElseThrow(()-> new RuntimeException("Customer not found with id :"+ customerId));
+//
+//        LoanDeal loanDeal=loanMapper.toEntity(request);
+//
+//        loanDeal.setCustomer(customer);
+//
+//        double interestRate=getInterestRate(request.getLoanType());
+//        loanDeal.setInterestRate(interestRate);
+//
+//        //calculate emi
+//        double emi=emiCalculationService.calculateEmi(loanDeal.getLoanAmount(),
+//                interestRate,loanDeal.getTenureMonths());
+//
+//        loanDeal.setEmiAmount(emi);
+//        loanDeal.setEmiDay(request.getEmiDay());
+//
+//        loanDeal.setLoanAmount(request.getLoanAmount());
+//
+//        ScoreCard  scoreCard=scoreCardRepository.findByCustomerId(customerId)
+//                .orElseThrow(()-> new RuntimeException("Customer Not Found In ScoreCart Table :"+ customerId));
+//
+//        Double approvedAmount=scoreCard.getEligibleLoanAmount();
+//
+//        if(approvedAmount == null)
+//        {
+//            throw new IllegalStateException("Approved Amount is not Available for this user");
+//        }
+//
+//        if(loanDeal.getLoanAmount() >= approvedAmount)
+//        {
+//            throw new IllegalArgumentException("Loan Amount is greater than approved amount");
+//        }
+//
+//
+//        loanDeal.setStatus(LoanStatus.SUBMITTED);
+//
+//        LoanDeal saveLoanDeal=loanDealRepository.save(loanDeal);
+//
+//        return loanMapper.toResponse(saveLoanDeal);
+//
+//    }
+
 
     @Override
     @Transactional(readOnly = true)
     public LoanApplicationResponse getLoanById(Long dealId) {
 
-        LoanDeal loanDeal = loanDealRepository.findById(dealId)
-                .orElseThrow(() ->
+        LoanDeal loanDeal = loanDealRepository.findById(dealId).orElseThrow(() ->
                         new LoanNotFoundException(
                                 "Loan not found with ID: " + dealId));
 
@@ -101,10 +170,8 @@ public class LoanServiceImpl implements LoanService {
     @Transactional
     public void deleteLoan(Long dealId) {
 
-        LoanDeal loanDeal = loanDealRepository.findById(dealId)
-                .orElseThrow(() ->
-                        new LoanNotFoundException(
-                                "Loan not found with ID: " + dealId));
+        LoanDeal loanDeal=loanDealRepository.findById(dealId)
+                .orElseThrow(() -> new LoanNotFoundException("Loan Not Found of this Id :"+ dealId));
 
         loanDealRepository.delete(loanDeal);
     }

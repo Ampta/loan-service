@@ -1,3 +1,4 @@
+
 package com.ampta.entity;
 
 import jakarta.persistence.*;
@@ -6,7 +7,15 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "loan_accounts")
+@Table(
+        name = "loan_accounts",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "UK_LoanAccounts_AccountNo",
+                        columnNames = "loan_account_no"
+                )
+        }
+)
 @Getter
 @Setter
 @AllArgsConstructor
@@ -19,19 +28,27 @@ public class LoanAccount extends BaseEntity {
     @Column(name = "loan_account_id")
     private Long loanAccountId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
-    private User customer;
+    // Many loan accounts can belong to one customer
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "customer_id",
+            referencedColumnName = "customer_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_LoanAccounts_Customer")
+    )
+    private Customer customer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "deal_id", nullable = false)
+    // Many loan accounts can belong to one loan deal
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "deal_id",
+            referencedColumnName = "deal_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_LoanAccounts_LoanDeal")
+    )
     private LoanDeal loanDeal;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Column(name = "loan_account_no", nullable = false,
-            unique = true, length = 100)
+    @Column(name = "loan_account_no", nullable = false, length = 100)
     private String loanAccountNo;
 
     @Column(name = "loan_amount")

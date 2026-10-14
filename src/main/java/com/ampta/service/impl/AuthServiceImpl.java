@@ -88,12 +88,12 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(request.getPassword());
         User savedUser = userRepository.save(user);
 
-        emailService.sendRegistrationSuccessEmail(
-                savedCustomer.getEmail(),
-                savedCustomer.getFirstName() + (savedCustomer.getLastName() != null ? " " + savedCustomer.getLastName() : ""),
-                request.getPassword(),
-                verificationToken
-        );
+//        emailService.sendRegistrationSuccessEmail(
+//                savedCustomer.getEmail(),
+//                savedCustomer.getFirstName() + (savedCustomer.getLastName() != null ? " " + savedCustomer.getLastName() : ""),
+//                request.getPassword(),
+//                verificationToken
+//        );
 
         return UserResponse.builder()
                 .userId(savedUser.getUserId())

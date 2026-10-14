@@ -7,6 +7,7 @@ import com.ampta.dto.response.ApiResponse;
 import com.ampta.dto.response.LoginResponse;
 import com.ampta.dto.response.UserResponse;
 import com.ampta.service.AuthService;
+import com.ampta.service.impl.AuthServiceImpl;
 import com.ampta.utils.Endpoints;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(Endpoints.V1_AUTH)
 public class AuthController {
 
-    private final AuthService authService;
+    private final AuthServiceImpl authService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> registerUser(@Valid @RequestBody RegisterRequest request){

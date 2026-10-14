@@ -27,6 +27,14 @@ public interface EmailService {
             String bankPartner,
             String disbursementDate
     );
+
+    void sendSanctionLetterEmail(
+            String toEmail,
+            String customerName,
+            Long dealId,
+            String pdfPath
+    );
+
     void sendRegistrationSuccessEmail(String toEmail, String name, String password, String verificationToken);
 
     void sendBulkKycStatusEmail(
@@ -36,5 +44,4 @@ public interface EmailService {
             DocumentStatus status,
             String rejectionReason
     );
-
 }

@@ -1,6 +1,7 @@
 package com.ampta.entity;
 
 import com.ampta.entity.enums.EmployeeType;
+import com.ampta.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,5 +34,6 @@ public class Customer extends BaseEntity{
     private Boolean isEmailVerified = false;
     private String verificationToken;
     private String accountStatus = "ACTIVE";
-
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }

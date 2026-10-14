@@ -1,3 +1,4 @@
+
 package com.ampta.entity;
 
 import jakarta.persistence.*;
@@ -17,27 +18,23 @@ public class DealReview {
     @Column(name = "review_id")
     private Long reviewId;
 
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "deal_id",
+            referencedColumnName = "deal_id",
             nullable = false,
-            foreignKey = @ForeignKey(
-                    name = "FK_DealReviews_LoanDeals"
-            )
+            foreignKey = @ForeignKey(name = "FK_DealReviews_LoanDeals")
     )
     private LoanDeal loanDeal;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "officer_id",
+            referencedColumnName = "customer_id",
             nullable = false,
-            foreignKey = @ForeignKey(
-                    name = "FK_DealReviews_Users"
-            )
+            foreignKey = @ForeignKey(name = "FK_DealReviews_Customers")
     )
-    private User officer;
-
+    private Customer officer;
 
     @Column(name = "status", length = 50)
     private String status;

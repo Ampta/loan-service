@@ -585,13 +585,13 @@ public class KycServiceImpl implements KycService {
                 savedDocuments.get(0).getDocumentId()
         );
 
-        emailService.sendBulkKycStatusEmail(
-                customer.getEmail(),
-                customer.getFirstName(),
-                documentTypes,
-                request.getStatus(),
-                request.getRejectionReason()
-        );
+//        emailService.sendBulkKycStatusEmail(
+//                customer.getEmail(),
+//                customer.getFirstName(),
+//                documentTypes,
+//                request.getStatus(),
+//                request.getRejectionReason()
+//        );
 
         return responses;
     }

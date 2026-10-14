@@ -32,6 +32,7 @@ public class Disbursement extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "deal_id",
+            referencedColumnName = "deal_id",
             nullable = false,
             unique = true,
             foreignKey = @ForeignKey(name = "FK_Disbursements_LoanDeal")

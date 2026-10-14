@@ -31,26 +31,16 @@ public class EmiSchedule extends BaseEntity {
 
     private LocalDate dueDate;
 
-    @Column(columnDefinition = "DECIMAL(18,2)")
     private Double principalAmount;
 
-    @Column(columnDefinition = "DECIMAL(18,2)")
     private Double interestAmount;
 
-
-    @Column(columnDefinition = "DECIMAL(18,2)")
     private Double interestRate;
 
-
-    @Column(columnDefinition = "DECIMAL(18,2)")
     private Double openingBalance;
 
-
-    @Column(columnDefinition = "DECIMAL(18,2)")
     private Double closingBalance;
 
-
-    @Column(columnDefinition = "DECIMAL(18,2)")
     private Double emiAmount;
 
     private String paymentStatus;

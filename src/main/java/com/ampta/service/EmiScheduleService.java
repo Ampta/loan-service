@@ -11,7 +11,8 @@ import java.util.List;
 
 public interface EmiScheduleService {
     List<EmiScheduleResponse> createEmiSchedule(EmiScheduleRequest request);
-    Page<EmiScheduleResponse> getEmiSchedulesByLoanAccountId(Integer loanAccountId, Pageable pageable);
-    EmiScheduleResponse getEmiScheduleById(Integer emiScheduleId);
-    EmiScheduleResponse updatePaymentStatus(Integer emiScheduleId, @Valid EmiPaymentStatusRequest request);
+    Page<EmiScheduleResponse> getEmiSchedulesByLoanAccountId(Long loanAccountId, Pageable pageable);
+    EmiScheduleResponse getEmiScheduleById(Long emiScheduleId);
+    EmiScheduleResponse updatePaymentStatus(Long emiScheduleId, @Valid EmiPaymentStatusRequest request);
+    List<EmiScheduleResponse> getEmiScheduleDetailsByLoanAccountId(Long loanAccountId);
 }

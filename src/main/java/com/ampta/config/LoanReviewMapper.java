@@ -1,4 +1,4 @@
-package com.ampta.config;
+ package com.ampta.config;
 
 import com.ampta.dto.response.LoanReviewResponse;
 import com.ampta.entity.DealReview;
@@ -11,7 +11,12 @@ public class LoanReviewMapper {
 
         LoanReviewResponse response = new LoanReviewResponse();
 
+        // Map review ID
+        response.setReviewId(dealReview.getReviewId());
+
+        // Map loan deal details
         if (dealReview.getLoanDeal() != null) {
+
             response.setDealId(
                     dealReview.getLoanDeal().getDealId()
             );
@@ -21,9 +26,11 @@ public class LoanReviewMapper {
             );
         }
 
+        // Map officer details
         if (dealReview.getOfficer() != null) {
+
             response.setOfficerId(
-                    dealReview.getOfficer().getUserId()
+                    dealReview.getOfficer().getCustomerId()
             );
         }
 

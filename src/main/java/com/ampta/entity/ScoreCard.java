@@ -17,7 +17,7 @@ public class ScoreCard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long scoreCardId;
-    private Long userId;
+    private Long customerId;
     private String status;
     private String rejectionReason;
     private Integer cibilScore;

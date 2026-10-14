@@ -1,9 +1,8 @@
-
 package com.ampta.utils;
 
+import com.ampta.entity.Customer;
 import com.ampta.entity.LoanDeal;
 import com.ampta.entity.SanctionLetter;
-import com.ampta.entity.User;
 import com.itextpdf.html2pdf.HtmlConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -24,9 +22,17 @@ public class SanctionLetterPdfGenerator {
 
     public String generate(
             SanctionLetter letter,
-            User customer) throws IOException {
+            Customer customer) throws IOException {
 
-        Path folder = Paths.get(directory)
+        if (letter == null || letter.getLoanDeal() == null) {
+            throw new IllegalArgumentException("Sanction letter and loan deal are required");
+        }
+
+        if (customer == null) {
+            throw new IllegalArgumentException("Customer is required to generate sanction letter");
+        }
+
+        Path folder = Path.of(directory)
                 .toAbsolutePath()
                 .normalize();
 
@@ -40,7 +46,6 @@ public class SanctionLetterPdfGenerator {
         }
 
         LoanDeal loan = letter.getLoanDeal();
-
         String html = buildHtml(letter, customer, loan);
 
         try (var outputStream = Files.newOutputStream(filePath)) {
@@ -52,12 +57,12 @@ public class SanctionLetterPdfGenerator {
 
     private String buildHtml(
             SanctionLetter letter,
-            User customer,
+            Customer customer,
             LoanDeal loan) {
 
         String customerName =
-                safe(customer.getFirstName()) + " " +
-                        safe(customer.getLastName());
+                (safe(customer.getFirstName()) + " "
+                        + safe(customer.getLastName())).trim();
 
         String accountNumber =
                 maskAccountNumber(loan.getBankAccountNumber());
@@ -65,7 +70,8 @@ public class SanctionLetterPdfGenerator {
         String sanctionDate = letter.getSanctionDate() == null
                 ? "N/A"
                 : letter.getSanctionDate().format(
-                DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                DateTimeFormatter.ofPattern("dd-MM-yyyy")
+        );
 
         String loanType = loan.getLoanType() == null
                 ? "N/A"
@@ -284,9 +290,7 @@ public class SanctionLetterPdfGenerator {
                             4. Disbursement is subject to completion of
                             applicable verification and documentation.
                         </p>
-                        <p>
-                            <b>Remarks:</b> %s
-                        </p>
+                        <p><b>Remarks:</b> %s</p>
                     </div>
 
                     <p>
@@ -314,7 +318,7 @@ public class SanctionLetterPdfGenerator {
                 escape(customerName),
                 escape(customer.getEmail()),
                 escape(customer.getPhoneNumber()),
-                escape(String.valueOf(customer.getUserId())),
+                escape(String.valueOf(customer.getCustomerId())),
                 escape(letter.getSanctionLetterNo()),
                 escape(String.valueOf(loan.getDealId())),
                 escape(loanType),

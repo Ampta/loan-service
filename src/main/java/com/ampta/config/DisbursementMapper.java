@@ -2,26 +2,50 @@ package com.ampta.config;
 
 import com.ampta.dto.response.DisbursementResponse;
 import com.ampta.entity.Disbursement;
-import org.modelmapper.ModelMapper;
+import com.ampta.entity.LoanAccount;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DisbursementMapper {
 
-    private final ModelMapper modelMapper;
+    public DisbursementResponse toResponse(
+            Disbursement disbursement,
+            LoanAccount loanAccount) {
 
-    public DisbursementMapper(ModelMapper modelMapper)
-    {
-        this.modelMapper=modelMapper;
-    }
+        return DisbursementResponse.builder()
 
-    public DisbursementResponse toResponse(Disbursement disbursement)
-    {
-        DisbursementResponse response=
-                modelMapper.map(disbursement,DisbursementResponse.class);
+                .disbursementId(
+                        disbursement.getDisbursementId()
+                )
 
-        response.setDealId(disbursement.getLoanDeal().getDealId());
+                .dealId(
+                        disbursement.getLoanDeal() != null
+                                ? disbursement.getLoanDeal().getDealId()
+                                : null
+                )
 
-        return response;
+                .disburseAmount(
+                        disbursement.getDisburseAmount()
+                )
+
+                .bankPartner(
+                        disbursement.getBankPartner()
+                )
+
+                .disbursementDate(
+                        disbursement.getDisbursementDate()
+                )
+
+                .status(
+                        String.valueOf(disbursement.getStatus())
+                )
+
+                .loanAccountNo(
+                        loanAccount != null
+                                ? loanAccount.getLoanAccountNo()
+                                : null
+                )
+
+                .build();
     }
 }

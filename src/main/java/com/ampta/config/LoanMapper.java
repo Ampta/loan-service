@@ -1,5 +1,5 @@
 
-        package com.ampta.config;
+package com.ampta.config;
 
 import com.ampta.dto.request.LoanApplicationRequest;
 import com.ampta.dto.response.LoanApplicationResponse;
@@ -26,7 +26,11 @@ public class LoanMapper {
 
         return LoanApplicationResponse.builder()
                 .dealId(loanDeal.getDealId())
-                .userId(loanDeal.getUserId())
+                .customerId(
+                        loanDeal.getCustomer() != null
+                                ? loanDeal.getCustomer().getCustomerId()
+                                : null
+                )
                 .loanType(loanDeal.getLoanType())
                 .loanAmount(loanDeal.getLoanAmount())
                 .interestRate(loanDeal.getInterestRate())

@@ -1,3 +1,4 @@
+
 package com.ampta.entity;
 
 import com.ampta.entity.enums.LoanStatus;
@@ -12,15 +13,21 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LoanDeal extends BaseEntity{
+public class LoanDeal extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "deal_id")
     private Long dealId;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "customer_id",
+            referencedColumnName = "customer_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_LoanDeal_Customers")
+    )
+    private Customer customer;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "loan_type", length = 100)

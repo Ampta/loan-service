@@ -5,6 +5,7 @@ import com.ampta.dto.response.ApiResponse;
 import com.ampta.dto.response.LoanApplicationResponse;
 import com.ampta.entity.LoanDeal;
 import com.ampta.service.impl.LoanServiceImpl;
+import com.ampta.utils.Endpoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,45 +13,73 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping(Endpoints.V1_LOAN)
 @RequiredArgsConstructor
 public class LoanDealController {
 
     private final LoanServiceImpl loanService;
 
-    @PostMapping("/loan/{userId}")
-    public ResponseEntity<LoanApplicationResponse> applyLoan(@PathVariable Long userId, @RequestBody LoanApplicationRequest
+    @PostMapping("/{customerId}")
+    public ResponseEntity<ApiResponse<LoanApplicationResponse>> applyLoan(@PathVariable Long customerId,
+                                                             @RequestBody LoanApplicationRequest
                                              request)
     {
-        LoanApplicationResponse response=loanService.applyLoan(userId,request);
+        LoanApplicationResponse response=loanService.applyLoan(customerId,request);
 
-        return ResponseEntity.ok(response);
+        ApiResponse<LoanApplicationResponse> apiResponse=ApiResponse.<LoanApplicationResponse>builder()
+                .success(true)
+                .data(response)
+                .message("Your Successfully apply for the loan")
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
     }
 
-    @GetMapping("/loan/{dealId}")
-    public ResponseEntity<LoanApplicationResponse> getLoanById(@PathVariable Long dealId)
+    @GetMapping("/{dealId}")
+    public ResponseEntity<ApiResponse<LoanApplicationResponse>> getLoanById(@PathVariable Long dealId)
     {
         LoanApplicationResponse loanDeal=loanService.getLoanById(dealId);
 
-        return ResponseEntity.ok(loanDeal);
+        ApiResponse<LoanApplicationResponse> apiResponse=ApiResponse.<LoanApplicationResponse>builder()
+                .success(true)
+                .data(loanDeal)
+                .message("Loan Fetch Successfully")
+                .build();
+
+
+        return ResponseEntity.ok(apiResponse);
 
     }
 
-    @GetMapping("/loan")
-    public ResponseEntity<List<LoanApplicationResponse>> getAllLoans()
+    @GetMapping("")
+    public ResponseEntity<ApiResponse<List<LoanApplicationResponse>>> getAllLoans()
     {
         List<LoanApplicationResponse> response=loanService.getAllLoans();
 
-        return ResponseEntity.ok(response);
+        ApiResponse<List<LoanApplicationResponse>> apiResponse=ApiResponse.<List<LoanApplicationResponse>>builder()
+                .success(true)
+                .data(response)
+                .message("Fetch All Apply Loans")
+                .build();
+
+
+        return ResponseEntity.ok(apiResponse);
 
     }
 
     @DeleteMapping("{dealId}")
-    public ResponseEntity<String> deleteLoan(@PathVariable Long dealId)
+    public ResponseEntity<ApiResponse<?>> deleteLoan(@PathVariable Long dealId)
     {
         loanService.deleteLoan(dealId);
 
-        return ResponseEntity.ok("Loan Delete Successfully with id :"+ dealId);
+        ApiResponse<String> apiResponse=ApiResponse.<String>builder()
+                .success(true)
+                .data(null)
+                .message("Loan Delete Successfully with id :"+ dealId)
+                .build();
+
+
+        return ResponseEntity.ok(apiResponse);
     }
 
 }
