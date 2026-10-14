@@ -8,6 +8,7 @@ public interface EmailService {
     void send2FaRecoveryOtp(String toEmail, String name, String otp);
     void sendPasswordResetEmail(String toEmail, String name, String resetToken);
 
+
     void sendLoanApprovedEmail(
             String toEmail,
             String name,
@@ -25,5 +26,10 @@ public interface EmailService {
             String disbursementDate
     );
 
-
+    void sendSanctionLetterEmail(
+            String toEmail,
+            String customerName,
+            Long dealId,
+            String pdfPath
+    );
 }

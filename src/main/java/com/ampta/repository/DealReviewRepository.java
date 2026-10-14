@@ -1,3 +1,4 @@
+
 package com.ampta.repository;
 
 import com.ampta.entity.DealReview;
@@ -8,11 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface DealReviewRepository extends JpaRepository<DealReview,Long> {
+public interface DealReviewRepository extends JpaRepository<DealReview, Long> {
 
-    List<DealReview> findByLoanDealDealId(Long dealId);
-
-    List<DealReview> findByOfficerUserId(Long userId);
-
-    List<DealReview> findByStatus(LoanStatus status);
+    List<DealReview> findByOfficer_CustomerId(Long customerId);
 }

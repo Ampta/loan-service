@@ -20,9 +20,17 @@ public class LoanAccountMapper {
         LoanAccountResponse response =
                 modelMapper.map(account, LoanAccountResponse.class);
 
-        response.setDealId(account.getLoanDeal().getDealId());
+        if (account.getLoanDeal() != null) {
+            response.setDealId(
+                    account.getLoanDeal().getDealId()
+            );
+        }
 
-        response.setCustomerId(account.getCustomer().getUserId());
+        if (account.getCustomer() != null) {
+            response.setCustomerId(
+                    account.getCustomer().getCustomerId()
+            );
+        }
 
         return response;
     }

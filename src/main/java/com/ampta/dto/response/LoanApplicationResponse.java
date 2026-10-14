@@ -12,7 +12,7 @@ import lombok.*;
 public class LoanApplicationResponse {
 
     private Long dealId;
-    private Long userId;
+    private Long customerId;
 
     private LoanType loanType;
     private Double loanAmount;

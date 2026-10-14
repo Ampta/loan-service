@@ -1,3 +1,4 @@
+
 package com.ampta.repository;
 
 import com.ampta.entity.LoanDeal;
@@ -8,12 +9,17 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface LoanDealRepository extends JpaRepository<LoanDeal,Long> {
+public interface LoanDealRepository extends JpaRepository<LoanDeal, Long> {
 
-    List<LoanDeal> findByUserId(Long userId);
+    // Find all loan deals for a customer
+    List<LoanDeal> findByCustomer_CustomerId(Long customerId);
 
+    // Find loan deals by status
     List<LoanDeal> findByStatus(LoanStatus status);
 
-    List<LoanDeal> findByUserIdAndStatus(Long userId,LoanStatus status);
-
+    // Find loan deals for a customer with a specific status
+    List<LoanDeal> findByCustomer_CustomerIdAndStatus(
+            Long customerId,
+            LoanStatus status
+    );
 }

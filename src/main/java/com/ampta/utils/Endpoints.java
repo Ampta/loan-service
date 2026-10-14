@@ -28,6 +28,7 @@ public class Endpoints {
     public static final String V1_LOAN = "/api/v1/loans";
     public static final String V1_SANCTION_LETTER = "/api/v1/sanction-letters";
     public static final String V1_DISBURSEMENT = "/api/v1/disbursements";
+    public static final String V1_OFFICER = "/api/v1/officer";
 
     // FARAZ: Foreclosure, Closure
     public static final String V1_FORECLOSURE = "/api/v1/foreclosures";

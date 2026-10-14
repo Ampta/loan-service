@@ -4,11 +4,14 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import java.io.File;
 
 @Component
 @RequiredArgsConstructor
@@ -332,6 +335,7 @@ public class EmailServiceImpl implements EmailService{
         sendHtmlEmail(toEmail, subject, htmlBody);
     }
 
+
     private String escapeHtml(String value) {
         if (value == null) {
             return "Not available";
@@ -346,5 +350,128 @@ public class EmailServiceImpl implements EmailService{
     }
 
 
+    @Override
+    @Async
+    public void sendSanctionLetterEmail(
+            String toEmail,
+            String customerName,
+            Long dealId,
+            String pdfPath) {
+
+        try {
+            if (toEmail == null || toEmail.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Customer email is required"
+                );
+            }
+
+            File pdfFile = new File(pdfPath);
+
+            if (!pdfFile.exists() || !pdfFile.isFile()) {
+                throw new IllegalArgumentException(
+                        "Sanction letter PDF not found: " + pdfPath
+                );
+            }
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+
+            // true enables email attachments
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            String name = (customerName == null || customerName.isBlank())
+                    ? "Customer"
+                    : customerName;
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject(
+                    "Loan Sanction Letter - Deal ID: " + dealId
+            );
+
+            String htmlBody = """
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: Arial, sans-serif;
+                             line-height: 1.6; color: #333;">
+
+                    <div style="max-width: 600px; margin: auto;
+                                padding: 20px; border: 1px solid #ddd;
+                                border-radius: 8px;">
+
+                        <h2 style="color: #174a7e;">
+                            Loan Sanction Letter
+                        </h2>
+
+                        <p>Hello %s,</p>
+
+                        <p>
+                            Congratulations! Your loan sanction letter
+                            has been generated successfully.
+                        </p>
+
+                        <p>
+                            <strong>Loan Deal ID:</strong> %s
+                        </p>
+
+                        <p>
+                            Please find your sanction letter attached
+                            to this email as a PDF document.
+                        </p>
+
+                        <p>
+                            Please keep this document for your records
+                            and review the terms and conditions carefully.
+                        </p>
+
+                        <p>Regards,<br/>
+                        Loan Management Team</p>
+
+                        <hr/>
+
+                        <small>
+                            This is an automated email. Please do not
+                            reply directly.
+                        </small>
+
+                    </div>
+                </body>
+                </html>
+                """.formatted(escapeHtml(name), dealId);
+
+            helper.setText(htmlBody, true);
+
+            FileSystemResource attachment =
+                    new FileSystemResource(pdfFile);
+
+            helper.addAttachment(
+                    pdfFile.getName(),
+                    attachment,
+                    "application/pdf"
+            );
+
+            mailSender.send(mimeMessage);
+
+            log.info(
+                    "Sanction letter email sent to {} for deal ID {}",
+                    toEmail,
+                    dealId
+            );
+
+        } catch (Exception e) {
+            log.error(
+                    "Failed to send sanction letter email to {} for deal ID {}",
+                    toEmail,
+                    dealId,
+                    e
+            );
+        }
+    }
+
+
+
 }
+
+
+
 

@@ -8,6 +8,15 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(
+        name = "disbursements",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "UK_Disbursements_DealId",
+                        columnNames = "deal_id"
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,6 +32,7 @@ public class Disbursement extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "deal_id",
+            referencedColumnName = "deal_id",
             nullable = false,
             unique = true,
             foreignKey = @ForeignKey(name = "FK_Disbursements_LoanDeal")
