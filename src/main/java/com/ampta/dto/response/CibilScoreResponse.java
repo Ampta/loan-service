@@ -23,5 +23,7 @@ public class CibilScoreResponse {
 
     private CibilStatus cibilStatus;
 
+    private String loanAmountRange;
+
     private Instant lastCheckedDate;
 }

@@ -1,107 +1,223 @@
 package com.ampta.service.impl;
 
-import com.ampta.dto.request.ScoreCardRequest;
 import com.ampta.dto.response.ScoreCardResponse;
+import com.ampta.entity.CibilReport;
 import com.ampta.entity.Customer;
+import com.ampta.entity.EligibilityResult;
 import com.ampta.entity.ScoreCard;
+import com.ampta.entity.User;
+import com.ampta.entity.enums.RiskCategory;
+import com.ampta.entity.enums.Role;
+import com.ampta.exception.CibilReportNotFoundException;
 import com.ampta.exception.ResourceNotFoundException;
 import com.ampta.repository.CibilReportRepository;
 import com.ampta.repository.CustomerRepository;
 import com.ampta.repository.EligibilityResultRepository;
 import com.ampta.repository.ScoreCardRepository;
+import com.ampta.repository.UserRepository;
 import com.ampta.service.ScoreCardService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
+@Transactional
 public class ScoreCardServiceImpl implements ScoreCardService {
 
     private final ScoreCardRepository scoreCardRepository;
     private final CustomerRepository customerRepository;
     private final CibilReportRepository cibilReportRepository;
     private final EligibilityResultRepository eligibilityResultRepository;
+    private final UserRepository userRepository;
+
+    // Uses the ModelMapper bean from ModelMapperConfig.
+    private final ModelMapper modelMapper;
+
 
     @Override
-    public ScoreCardResponse createOrGenerateScoreCard(ScoreCardRequest request) {
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + request.getCustomerId()));
+    public ScoreCardResponse generateScoreCard(
+            Long customerId,
+            Long officerId) {
 
-        ScoreCard scoreCard = new ScoreCard();
-        scoreCard.setCustomer(customer);
+        validateOfficer(officerId);
 
-        Integer score = request.getCibilScore();
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Customer not found: " + customerId
+                        )
+                );
+
+        CibilReport cibilReport = cibilReportRepository
+                .findFirstByCustomer_CustomerIdOrderByCheckDateDesc(
+                        customerId
+                )
+                .orElseThrow(() ->
+                        new CibilReportNotFoundException(
+                                "CIBIL report not found for customer: "
+                                        + customerId
+                        )
+                );
+
+        EligibilityResult eligibility = eligibilityResultRepository
+                .findFirstByCustomer_CustomerIdOrderByEligibilityIdDesc(
+                        customerId
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Eligibility result not found. "
+                                        + "Check eligibility before generating scorecard."
+                        )
+                );
+
+        Integer score = cibilReport.getCibilScore();
+
         if (score == null) {
-            score = cibilReportRepository.findFirstByCustomer_CustomerIdOrderByCheckDateDesc(customer.getCustomerId())
-                    .map(c -> c.getCibilScore())
-                    .orElse(700);
+            throw new IllegalArgumentException(
+                    "CIBIL score is not available"
+            );
         }
+
+        // Update the latest scorecard, or create one if absent.
+        ScoreCard scoreCard = scoreCardRepository
+                .findFirstByCustomer_CustomerIdOrderByScoreCardIdDesc(
+                        customerId
+                )
+                .orElseGet(ScoreCard::new);
+
+        scoreCard.setCustomer(customer);
         scoreCard.setCibilScore(score);
+        scoreCard.setRiskCategory(calculateRiskCategory(score));
+        scoreCard.setCurrentStatus(resolveStatus(eligibility));
+        scoreCard.setRejectionReason(eligibility.getRejectionReason());
+        scoreCard.setEligibleLoanAmount(eligibility.getLoanAmount());
 
-        String risk;
-        String status;
-        if (score >= 800) {
-            risk = "LOW_RISK";
-            status = "APPROVED";
-        } else if (score >= 650) {
-            risk = "MEDIUM_RISK";
-            status = "UNDER_REVIEW";
-        } else {
-            risk = "HIGH_RISK";
-            status = "REJECTED";
+        // The supplied schema has no separate loan application entity/date
+        // in this service. Preserve an existing date; otherwise initialise it.
+        if (scoreCard.getAppliedDate() == null) {
+            scoreCard.setAppliedDate(LocalDateTime.now());
         }
-
-        scoreCard.setRiskCategory(request.getRiskCategory() != null ? request.getRiskCategory() : risk);
-        scoreCard.setCurrentStatus(request.getCurrentStatus() != null ? request.getCurrentStatus() : status);
-        scoreCard.setRejectionReason(request.getRejectionReason() != null ? request.getRejectionReason() : (score < 650 ? "Low credit score (<650)" : null));
-
-        Double eligibleAmount = request.getEligibleLoanAmount();
-        if (eligibleAmount == null) {
-            eligibleAmount = eligibilityResultRepository.findFirstByCustomer_CustomerIdOrderByCreatedAtDesc(customer.getCustomerId())
-                    .map(e -> e.getLoanAmount())
-                    .orElse(Double.valueOf(500000));
-        }
-        scoreCard.setEligibleLoanAmount(eligibleAmount);
 
         ScoreCard saved = scoreCardRepository.save(scoreCard);
-        return mapToResponse(saved);
+
+        log.info(
+                "Scorecard generated for customerId={}, scoreCardId={}",
+                customerId,
+                saved.getScoreCardId()
+        );
+
+        return toResponse(saved);
     }
 
-    private ScoreCardResponse mapToResponse(ScoreCard sc) {
-        String name = sc.getCustomer() != null ? sc.getCustomer().getFirstName() + (sc.getCustomer().getLastName() != null ? " " + sc.getCustomer().getLastName() : "") : "";
-        return ScoreCardResponse.builder()
-                .scoreCardId(sc.getScoreCardId())
-                .customerId(sc.getCustomer() != null ? sc.getCustomer().getCustomerId() : null)
-                .customerName(name)
-                .currentStatus(sc.getCurrentStatus())
-                .rejectionReason(sc.getRejectionReason())
-                .appliedDate(sc.getAppliedDate())
-                .cibilScore(sc.getCibilScore())
-                .riskCategory(sc.getRiskCategory())
-                .eligibleLoanAmount(sc.getEligibleLoanAmount())
-                .build();
-    }
 
     @Override
-    public ScoreCardResponse getScoreCardById(Integer scoreCardId) {
-        return null;
+    @Transactional(readOnly = true)
+    public ScoreCardResponse getLatestScoreCard(
+            Long customerId,
+            Long officerId) {
+
+        validateOfficer(officerId);
+
+        ScoreCard scoreCard = scoreCardRepository
+                .findFirstByCustomer_CustomerIdOrderByScoreCardIdDesc(
+                        customerId
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Scorecard not found for customer: "
+                                        + customerId
+                        )
+                );
+
+        return toResponse(scoreCard);
     }
 
-    @Override
-    public ScoreCardResponse getCustomerScoreCard(Integer customerId) {
-        return null;
+
+    private void validateOfficer(Long officerId) {
+
+        User officer = userRepository.findById(officerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Officer not found: " + officerId
+                        )
+                );
+
+        if (officer.getRole() != Role.OFFICER) {
+            throw new IllegalArgumentException(
+                    "Only an officer can access this operation"
+            );
+        }
     }
 
-    @Override
-    public List<ScoreCardResponse> getAllScoreCards() {
-        return List.of();
+
+    private String resolveStatus(EligibilityResult eligibility) {
+
+        if (Boolean.TRUE.equals(eligibility.getIsEligible())) {
+            return "APPROVED";
+        }
+
+        if (eligibility.getRejectionReason() != null
+                && !eligibility.getRejectionReason().isBlank()) {
+            return "REJECTED";
+        }
+
+        return "PENDING_REVIEW";
     }
 
-    @Override
-    public ScoreCardResponse updateScoreCard(Integer scoreCardId, ScoreCardRequest request) {
-        return null;
+
+    private RiskCategory calculateRiskCategory(Integer score) {
+
+        // Suggested risk-band policy; adjust independently if required.
+        if (score >= 750) {
+            return RiskCategory.LOW;
+        }
+
+        if (score >= 650) {
+            return RiskCategory.MEDIUM;
+        }
+
+        return RiskCategory.HIGH;
+    }
+
+
+    private ScoreCardResponse toResponse(ScoreCard scoreCard) {
+
+        // Map the ScoreCard's matching fields.
+        ScoreCardResponse response =
+                modelMapper.map(
+                        scoreCard,
+                        ScoreCardResponse.class
+                );
+
+        // Map details that come from the associated Customer entity.
+        Customer customer = scoreCard.getCustomer();
+
+        response.setCustomerId(customer.getCustomerId());
+
+        String firstName = customer.getFirstName() == null
+                ? ""
+                : customer.getFirstName().trim();
+
+        String lastName = customer.getLastName() == null
+                ? ""
+                : customer.getLastName().trim();
+
+        response.setCustomerName(
+                (firstName + " " + lastName).trim()
+        );
+
+        response.setPanNumber(customer.getPanNumber());
+        response.setMonthlyIncome(customer.getMonthlyEarning());
+        response.setMonthlySpending(customer.getMonthlySpending());
+
+        return response;
     }
 }

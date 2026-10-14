@@ -248,5 +248,76 @@ public class EmailServiceImpl implements EmailService{
         // Reuse the existing email implementation
         sendSimpleEmail(toEmail, subject, body);
     }
+
+    @Override
+    public void sendEligibilityApprovedEmail(
+            String toEmail,
+            String name,
+            Integer cibilScore,
+            Double loanAmount,
+            boolean automatic) {
+
+        String customerName =
+                (name == null || name.isBlank()) ? "Customer" : name;
+
+        String subject = automatic
+                ? "Loan Eligibility Automatically Approved"
+                : "Loan Eligibility Approved";
+
+        String amount = loanAmount == null
+                ? "To be determined"
+                : "INR " + String.format(
+                java.util.Locale.US,
+                "%.2f",
+                loanAmount
+        );
+
+        String body =
+                "Dear " + customerName + ",\n\n"
+                        + "Congratulations! Your loan eligibility has been "
+                        + (automatic ? "automatically approved" : "approved by our officer")
+                        + ".\n\n"
+                        + "CIBIL Score: " + cibilScore + "\n"
+                        + "Indicative Loan Amount: " + amount + "\n\n"
+                        + "Please note that eligibility approval does not necessarily "
+                        + "mean final loan sanction or disbursement.\n\n"
+                        + "Regards,\n"
+                        + "LoanApp Team";
+
+        sendSimpleEmail(toEmail, subject, body);
+    }
+
+    @Override
+    public void sendEligibilityRejectedEmail(
+            String toEmail,
+            String name,
+            Integer cibilScore,
+            String rejectionReason) {
+
+        String customerName =
+                (name == null || name.isBlank()) ? "Customer" : name;
+
+        String subject = "Loan Eligibility Rejected";
+
+        String body =
+                "Dear " + customerName + ",\n\n"
+                        + "We regret to inform you that your loan eligibility "
+                        + "request has been rejected by our loan officer.\n\n"
+                        + "CIBIL Score: " + cibilScore + "\n"
+                        + "Rejection Reason: " + rejectionReason + "\n\n"
+                        + "For further assistance, please contact our loan team.\n\n"
+                        + "Regards,\n"
+                        + "LoanApp Team";
+
+        sendSimpleEmail(toEmail, subject, body);
+    }
+
+
+
+
+
+
+
+
 }
 

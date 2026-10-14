@@ -8,10 +8,19 @@ import java.util.List;
 
 public interface ScoreCardService {
 
-    ScoreCardResponse createOrGenerateScoreCard(ScoreCardRequest request);
-    ScoreCardResponse getScoreCardById(Integer scoreCardId);
-    ScoreCardResponse getCustomerScoreCard(Integer customerId);
-    List<ScoreCardResponse> getAllScoreCards();
-    ScoreCardResponse updateScoreCard(Integer scoreCardId, ScoreCardRequest request);
+//    ScoreCardResponse createOrGenerateScoreCard(ScoreCardRequest request);
+//    ScoreCardResponse getScoreCardById(Integer scoreCardId);
+//    ScoreCardResponse getCustomerScoreCard(Integer customerId);
+//    List<ScoreCardResponse> getAllScoreCards();
+//    ScoreCardResponse updateScoreCard(Integer scoreCardId, ScoreCardRequest request);
 
+    ScoreCardResponse generateScoreCard(
+            Long customerId,
+            Long officerId
+    );
+
+    ScoreCardResponse getLatestScoreCard(
+            Long customerId,
+            Long officerId
+    );
 }

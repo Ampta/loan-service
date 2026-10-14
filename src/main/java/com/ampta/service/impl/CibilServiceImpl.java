@@ -1,6 +1,7 @@
 package com.ampta.service.impl;
 
 import com.ampta.config.ModelMapperConfig;
+import com.ampta.dto.request.EligibilityCheckRequest;
 import com.ampta.dto.response.CibilScoreResponse;
 import com.ampta.entity.CibilReport;
 import com.ampta.entity.Customer;
@@ -15,6 +16,7 @@ import com.ampta.repository.CustomerRepository;
 import com.ampta.repository.UserRepository;
 import com.ampta.service.CibilService;
 
+import com.ampta.service.EligibilityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,6 +38,7 @@ public class CibilServiceImpl implements CibilService {
     private final CibilReportRepository cibilReportRepository;
     private final UserRepository userRepository;
     private final ModelMapperConfig modelMapperConfig;
+    private final EligibilityService eligibilityService;
 
     private final CustomerRepository customerRepository;
 
@@ -244,41 +247,13 @@ public class CibilServiceImpl implements CibilService {
         CibilReport savedReport =
                 cibilReportRepository.save(report);
 
+        // Automatically evaluate eligibility after generating CIBIL score.
+        eligibilityService.checkEligibility(
+                new EligibilityCheckRequest(customerId)
+        );
+
         // 9. Map entity to response DTO using ModelMapperConfig
         return mapToResponse(savedReport);
-    }
-
-    private CibilScoreResponse mapToResponse(CibilReport report) {
-
-        CibilScoreResponse response =
-                modelMapperConfig.modelMapper()
-                        .map(report, CibilScoreResponse.class);
-
-        response.setCustomerId(
-                report.getCustomer().getCustomerId()
-        );
-
-        response.setCustomerName(
-                getCustomerName(report.getCustomer())
-        );
-
-        response.setPanNumber(
-                maskPan(report.getPanNumber())
-        );
-
-        response.setCibilScore(
-                String.valueOf(report.getCibilScore())
-        );
-
-        response.setCibilStatus(
-                getCibilStatus(report.getCibilScore())
-        );
-
-        response.setLastCheckedDate(
-                report.getCheckDate()
-        );
-
-        return response;
     }
 
 
@@ -400,6 +375,36 @@ public class CibilServiceImpl implements CibilService {
                 + pan.substring(8);
     }
 
+    // Determine loan amount range based on CIBIL status
+    private String getLoanAmountRange(CibilStatus status) {
+
+        switch (status) {
+
+            case EXCELLENT:
+                return "Above ₹1 crore";
+
+            case VERY_GOOD:
+                return "₹75 lakh to ₹1 crore";
+
+            case GOOD:
+                return "₹50 lakh to ₹75 lakh";
+
+            case AVERAGE:
+                return "₹25 lakh to ₹50 lakh";
+
+            case RISKY:
+                return "₹10 lakh to ₹25 lakh";
+
+            case REJECT:
+                return "Not eligible";
+
+            default:
+                throw new IllegalArgumentException(
+                        "Unsupported CIBIL status: " + status
+                );
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public CibilScoreResponse getLatestCibilScore(Long customerId) {
@@ -424,5 +429,43 @@ public class CibilServiceImpl implements CibilService {
 
         // Map entity to response DTO
         return mapToResponse(report);
+    }
+
+    private CibilScoreResponse mapToResponse(CibilReport report) {
+
+        CibilScoreResponse response =
+                modelMapperConfig.modelMapper()
+                        .map(report, CibilScoreResponse.class);
+
+        response.setCustomerId(
+                report.getCustomer().getCustomerId()
+        );
+
+        response.setCustomerName(
+                getCustomerName(report.getCustomer())
+        );
+
+        response.setPanNumber(
+                maskPan(report.getPanNumber())
+        );
+
+        response.setCibilScore(
+                String.valueOf(report.getCibilScore())
+        );
+
+        CibilStatus status =
+                getCibilStatus(report.getCibilScore());
+
+        response.setCibilStatus(status);
+
+        response.setLoanAmountRange(
+                getLoanAmountRange(status)
+        );
+
+        response.setLastCheckedDate(
+                report.getCheckDate()
+        );
+
+        return response;
     }
 }

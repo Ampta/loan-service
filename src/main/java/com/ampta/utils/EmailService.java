@@ -20,4 +20,19 @@ public interface EmailService {
             DocumentStatus status,
             String rejectionReason
     );
+
+    void sendEligibilityApprovedEmail(
+            String toEmail,
+            String name,
+            Integer cibilScore,
+            Double loanAmount,
+            boolean automatic
+    );
+
+    void sendEligibilityRejectedEmail(
+            String toEmail,
+            String name,
+            Integer cibilScore,
+            String rejectionReason
+    );
 }
