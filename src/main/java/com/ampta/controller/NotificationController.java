@@ -2,6 +2,7 @@ package com.ampta.controller;
 
 import com.ampta.dto.response.NotificationResponse;
 import com.ampta.service.NotificationService;
+import com.ampta.utils.Endpoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping(Endpoints.V1_NOTIFICATION)
 @RequiredArgsConstructor
 public class NotificationController {
 

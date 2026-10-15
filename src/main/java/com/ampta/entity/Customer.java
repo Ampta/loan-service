@@ -20,6 +20,7 @@ public class Customer extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "customer_id")
     private Long customerId;
 
     @OneToOne(mappedBy = "customer", fetch = FetchType.LAZY)
