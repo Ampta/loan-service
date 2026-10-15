@@ -1,5 +1,6 @@
 package com.ampta.entity;
 
+import com.ampta.entity.enums.RiskCategory;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,23 +16,35 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Entity
 @Table(name = "score_cards")
-public class ScoreCard {
-
+public class ScoreCard extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long scoreCardId;
+    @Column(name = "`ScoreCardId`")
+    private Integer scoreCardId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name =  "customer_id", nullable = false)
     private Customer customer;
-    private Long userId;
-    private String currentStatus; // APPROVED, REJECTED, UNDER_REVIEW
+
+    @Column(name = "`CurrentStatus`", length = 100)
+    private String currentStatus;
+
+    @Column(name = "`RejectionReason`", length = 1000)
     private String rejectionReason;
 
-    @CreationTimestamp
-    @Column(name = "applied_date")
+    @Column(name = "`AppliedDate`")
     private LocalDateTime appliedDate;
+
+    @Column(name = "`CibilScore`")
     private Integer cibilScore;
-    private String riskCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "`RiskCategory`", length = 50)
+    private RiskCategory riskCategory;
+
+    @Column(
+            name = "`EligibleLoanAmount`",
+            columnDefinition = "DECIMAL(18,2)"
+    )
     private Double eligibleLoanAmount;
 }

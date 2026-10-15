@@ -7,6 +7,7 @@ import com.ampta.dto.response.KycDocumentResponse;
 import com.ampta.dto.response.OfficerCustomerResponse;
 import com.ampta.entity.enums.DocumentStatus;
 import com.ampta.service.KycService;
+import com.ampta.utils.Endpoints;
 import org.springframework.core.io.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/api/v1/kyc")
+@RequestMapping(Endpoints.V1_KYC)
 @RequiredArgsConstructor
 public class KycController {
 

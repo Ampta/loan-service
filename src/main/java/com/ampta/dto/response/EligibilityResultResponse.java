@@ -14,10 +14,22 @@ import java.time.Instant;
 public class EligibilityResultResponse {
 
     private Long eligibilityId;
+
     private Long customerId;
+    private String customerName;
+    private String email;
+    private String phoneNumber;
+
     private Integer cibilScore;
+    private Double monthlyEarning;
+    private Double monthlySpending;
+
     private Boolean isEligible;
     private Double loanAmount;
     private String rejectionReason;
+
+    // Calculated in Java, not stored in the database.
+    private String decisionStatus;
+
     private Instant createdAt;
 }

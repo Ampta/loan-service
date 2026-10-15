@@ -1,37 +1,59 @@
 package com.ampta.controller;
 
-import com.ampta.dto.request.ScoreCardRequest;
 import com.ampta.dto.response.ApiResponse;
 import com.ampta.dto.response.ScoreCardResponse;
-import com.ampta.entity.ScoreCard;
+import com.ampta.dto.response.OfficerEligibilityCustomerResponse;
 import com.ampta.service.ScoreCardService;
 import com.ampta.utils.Endpoints;
-import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
-@RequestMapping(Endpoints.V1_SCORE_CARD)
 @RequiredArgsConstructor
-@Slf4j
+@RequestMapping(Endpoints.V1_SCORE_CARD)
+//@PreAuthorize("hasRole('OFFICER')")
 public class ScoreCardController {
 
     private final ScoreCardService scoreCardService;
 
-    public ResponseEntity<ApiResponse<?>> createScoreCard(@RequestBody ScoreCard request){
-        return null;
+    // 1. Officer fetches the customer list.
+    @GetMapping("/customers")
+    public ResponseEntity<
+            ApiResponse<List<OfficerEligibilityCustomerResponse>>>
+    getCustomersForScoreCards() {
+
+        List<OfficerEligibilityCustomerResponse> response =
+                scoreCardService.getCustomersForScoreCards();
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Customers fetched successfully",
+                        response
+                )
+        );
     }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<ScoreCardResponse>> createScoreCard(@Valid @RequestBody ScoreCardRequest request) {
-        log.info("REST request to generate/create score card for customer: {}", request.getCustomerId());
-        ScoreCardResponse response = scoreCardService.createOrGenerateScoreCard(request);
-        return new ResponseEntity<>(new ApiResponse<>(true, "Score card created successfully", response), HttpStatus.CREATED);
+    // 2. Officer selects a customer and views the scorecard.
+    // Backend automatically generates it if required.
+    @GetMapping("/customers/{customerId}")
+    public ResponseEntity<ApiResponse<ScoreCardResponse>>
+    getScoreCard(@PathVariable Long customerId) {
+
+        ScoreCardResponse response =
+                scoreCardService.getOrGenerateScoreCard(customerId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Scorecard fetched successfully",
+                        response
+                )
+        );
     }
 }
