@@ -11,12 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class LoginResponse {
-    private String token;
-    private String refreshToken;
-    private Long userId;
-    private String email;
-    private Role role;
-    private Long customerId;
-    private String firstName;
-    private String lastName;
+    private boolean mfaRequired;
+    private boolean isFirstTimeSetup;
+    private String preAuthToken;
+    private String secretKey;
+    private String qrCodeDataUri;
+    private String message;
+    private AuthResponse auth;
 }

@@ -27,7 +27,7 @@ public class CibilReport extends BaseEntity{
     @JoinColumn(name = "CustomerId", nullable = false)
     private Customer customer;
 
-    @Column(length = 20)
+//    @Column(length = 20)
     private String panNumber;
 
 //    @Column(name = "CibilScore")
