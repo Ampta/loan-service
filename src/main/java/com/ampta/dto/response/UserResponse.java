@@ -1,6 +1,5 @@
 package com.ampta.dto.response;
 
-import com.ampta.entity.enums.EmployeeType;
 import com.ampta.entity.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +20,8 @@ public class UserResponse {
     private String lastName;
     private String email;
     private String phoneNumber;
+    private Boolean isEmailVerified;
     private Instant createdAt;
     private Instant updatedAt;
 }
+
