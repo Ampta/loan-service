@@ -1,5 +1,7 @@
 package com.ampta.dto.response;
 
+import com.ampta.entity.EmiSchedule;
+import com.ampta.entity.LoanAccount;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,4 +25,6 @@ public class LoanPaymentResponse {
     private String paymentStatus;
     private String paymentName;
     private String paymentMode;
+
+
 }

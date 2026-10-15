@@ -58,5 +58,5 @@ public class PenaltyServiceImpl implements PenaltyService {
                         ))
                 .collect(Collectors.toList());
     }
-
 }
+

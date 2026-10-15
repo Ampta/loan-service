@@ -42,4 +42,7 @@ public class LoanPayment {
 
     // WALLET, NET_BANKING, UPI, CARD, CASH
     private String paymentMode = "ONLINE";
+
+
+
 }

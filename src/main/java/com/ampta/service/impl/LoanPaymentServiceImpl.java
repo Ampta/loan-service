@@ -1,18 +1,23 @@
+
 package com.ampta.service.impl;
 
 import com.ampta.dto.request.LoanPaymentRequest;
+import com.ampta.dto.request.PaymentStatusRequest;
 import com.ampta.dto.response.LoanPaymentResponse;
 import com.ampta.entity.EmiSchedule;
 import com.ampta.entity.LoanAccount;
 import com.ampta.entity.LoanPayment;
+import com.ampta.entity.PenaltyCharge;
 import com.ampta.exception.ResourceNotFoundException;
 import com.ampta.repository.EmiScheduleRepository;
 import com.ampta.repository.LoanAccountRepository;
 import com.ampta.repository.LoanPaymentRepository;
+import com.ampta.repository.PenaltyChargeRepository;
 import com.ampta.service.LoanPaymentService;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +32,12 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
     private final LoanPaymentRepository loanPaymentRepository;
     private final LoanAccountRepository loanAccountRepository;
     private final EmiScheduleRepository emiScheduleRepository;
+    private final PenaltyChargeRepository penaltyChargeRepository;
+    private final ModelMapper modelMapper;
 
     @Override
-    public LoanPaymentResponse makePayment(
-            LoanPaymentRequest request) throws BadRequestException {
+    public LoanPaymentResponse makePayment(LoanPaymentRequest request)
+            throws BadRequestException {
 
         // 1. Validate request
         if (request == null
@@ -56,7 +63,7 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                         "EMI schedule not found with id: "
                                 + request.getEmiScheduleId()));
 
-        // 4. Verify that EMI belongs to this loan account
+        // 4. Verify EMI belongs to this loan account
         if (schedule.getLoanAccount() == null
                 || !schedule.getLoanAccount().getLoanAccountId()
                 .equals(account.getLoanAccountId())) {
@@ -65,33 +72,75 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                     "EMI does not belong to this loan account");
         }
 
-        // 5. Check payment status
-        if (!"PENDING".equalsIgnoreCase(schedule.getPaymentStatus())) {
+        // 5. EMI must be pending or bounced
+        String emiStatus = schedule.getPaymentStatus();
+
+        if (!"PENDING".equalsIgnoreCase(emiStatus)
+                && !"BOUNCED".equalsIgnoreCase(emiStatus)) {
+
             throw new BadRequestException(
                     "This EMI is not pending payment");
         }
 
-        // 6. Validate payment amount
+        // 6. Fetch original EMI amount
+        Double emiValue = schedule.getEmiAmount();
+
+        if (emiValue == null || emiValue <= 0) {
+            throw new BadRequestException(
+                    "EMI amount must be positive");
+        }
+
+        double emiAmount = roundToTwoDecimals(emiValue);
+
+
+        // 7. Find penalty associated with this EMI
+        PenaltyCharge penalty = penaltyChargeRepository
+                .findByEmiSchedule_EmiScheduleId(
+                        schedule.getEmiScheduleId())
+                .orElse(null);
+
+        double penaltyAmount = 0.0;
+
+// Include penalty only when its status is PENDING
+        if (penalty != null
+                && "PENDING".equalsIgnoreCase(penalty.getStatus())) {
+
+            Double penaltyValue = penalty.getPenaltyAmount();
+
+            penaltyAmount = penaltyValue == null
+                    ? 0.0
+                    : roundToTwoDecimals(penaltyValue);
+
+            if (penaltyAmount < 0) {
+                throw new BadRequestException(
+                        "Penalty amount cannot be negative");
+            }
+        }
+
+        // 8. Calculate total without modifying original EMI
+        double totalPayable = roundToTwoDecimals(
+                emiAmount + penaltyAmount);
+
+        // 9. Validate payment amount BEFORE changing database records
         double paymentAmount =
                 roundToTwoDecimals(request.getPaymentAmount());
 
-        Double emiAmount = schedule.getEmiAmount();
-
-        if (paymentAmount <= 0
-                || emiAmount == null
-                || emiAmount <= 0) {
-
+        if (paymentAmount <= 0) {
             throw new BadRequestException(
-                    "Payment amount and EMI amount must be positive");
+                    "Payment amount must be positive");
         }
 
-        if (Math.abs(paymentAmount - roundToTwoDecimals(emiAmount)) > 0.001) {
+        if (Math.abs(paymentAmount - totalPayable) > 0.001) {
             throw new BadRequestException(
-                    "Invalid EMI payment amount. Expected: "
-                            + roundToTwoDecimals(emiAmount));
+                    "Incorrect payment amount. EMI amount: "
+                            + emiAmount
+                            + ", unpaid penalty: "
+                            + penaltyAmount
+                            + ", total payable: "
+                            + totalPayable);
         }
 
-        // 7. Validate principal and outstanding balance
+        // 10. Validate principal and outstanding balance
         Double principalValue = schedule.getPrincipalAmount();
         Double outstandingValue = account.getOutstandingPrincipal();
 
@@ -100,8 +149,11 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                     "Principal amount or outstanding balance is missing");
         }
 
-        double principalAmount = roundToTwoDecimals(principalValue);
-        double outstanding = roundToTwoDecimals(outstandingValue);
+        double principalAmount =
+                roundToTwoDecimals(principalValue);
+
+        double outstanding =
+                roundToTwoDecimals(outstandingValue);
 
         if (principalAmount < 0 || outstanding < 0) {
             throw new BadRequestException(
@@ -113,40 +165,7 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                     "EMI principal cannot exceed outstanding principal");
         }
 
-        // 8. Update outstanding principal
-        double remaining = roundToTwoDecimals(
-                Math.max(0.0, outstanding - principalAmount));
-
-        account.setOutstandingPrincipal(remaining);
-
-        // 9. Update total paid amount
-        Double previousTotal = account.getTotalPaidAmount();
-
-        if (previousTotal == null) {
-            previousTotal = 0.0;
-        }
-
-        account.setTotalPaidAmount(
-                roundToTwoDecimals(previousTotal + paymentAmount));
-
-        // 10. Mark EMI as paid
-        schedule.setPaymentStatus("PAID");
-        schedule.setPaidDate(LocalDateTime.now());
-
-        emiScheduleRepository.save(schedule);
-
-        // 11. Check whether the loan can be closed
-        List<EmiSchedule> pendingEmis = emiScheduleRepository
-                .findByLoanAccount_LoanAccountIdAndPaymentStatusOrderByInstallmentNoAsc(
-                        account.getLoanAccountId(), "PENDING");
-
-        if (pendingEmis.isEmpty() && remaining <= 0.01) {
-            account.setLoanStatus("CLOSED");
-        }
-
-        loanAccountRepository.save(account);
-
-        // 12. Create payment record
+        // 11. Create payment record
         LoanPayment payment = new LoanPayment();
 
         payment.setLoanAccount(account);
@@ -163,12 +182,77 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                         ? request.getPaymentMode()
                         : "ONLINE");
 
+        /*
+         * This follows your current implementation, which treats
+         * the payment as successful immediately.
+         *
+         * For a real payment gateway, set SUCCESS only after
+         * verifying successful payment confirmation.
+         */
         payment.setPaymentStatus("SUCCESS");
 
-        // 13. Save payment
-        LoanPayment savedPayment = loanPaymentRepository.save(payment);
+        LoanPayment savedPayment =
+                loanPaymentRepository.save(payment);
 
-        // 14. Build response with correct Long IDs
+        // 12. Update EMI and penalty only for successful payment
+        if ("SUCCESS".equalsIgnoreCase(
+                savedPayment.getPaymentStatus())) {
+
+            // Mark EMI as paid
+            schedule.setPaymentStatus("PAID");
+            schedule.setPaidDate(LocalDateTime.now());
+
+            emiScheduleRepository.save(schedule);
+
+            // Mark penalty as paid only if an unpaid penalty was included
+            if (penalty != null && penaltyAmount > 0
+                    && "PENDING".equalsIgnoreCase(penalty.getStatus())) {
+
+                penalty.setStatus("PAID");
+                penaltyChargeRepository.save(penalty);
+            }
+
+            // 13. Reduce principal by EMI principal only
+            double remaining = roundToTwoDecimals(
+                    Math.max(0.0, outstanding - principalAmount));
+
+            account.setOutstandingPrincipal(remaining);
+
+            // 14. Update total collected amount
+            Double previousTotal = account.getTotalPaidAmount();
+
+            if (previousTotal == null) {
+                previousTotal = 0.0;
+            }
+
+            account.setTotalPaidAmount(
+                    roundToTwoDecimals(
+                            previousTotal + paymentAmount));
+
+            // 15. Check loan closure
+            List<EmiSchedule> pendingEmis =
+                    emiScheduleRepository
+                            .findByLoanAccount_LoanAccountIdAndPaymentStatusOrderByInstallmentNoAsc(
+                                    account.getLoanAccountId(),
+                                    "PENDING");
+
+            List<EmiSchedule> bouncedEmis =
+                    emiScheduleRepository
+                            .findByLoanAccount_LoanAccountIdAndPaymentStatusOrderByInstallmentNoAsc(
+                                    account.getLoanAccountId(),
+                                    "BOUNCED");
+
+            if (pendingEmis.isEmpty()
+                    && bouncedEmis.isEmpty()
+                    && remaining <= 0.01) {
+
+                account.setLoanStatus("CLOSED");
+            }
+
+            loanAccountRepository.save(account);
+        }
+
+        // 16. Build response
         return LoanPaymentResponse.builder()
                 .paymentId(savedPayment.getPaymentId())
                 .loanAccountId(account.getLoanAccountId())
@@ -180,6 +264,43 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                 .paymentName(savedPayment.getPaymentName())
                 .paymentMode(savedPayment.getPaymentMode())
                 .build();
+    }
+
+
+    @Override
+    public LoanPaymentResponse getPaymentById(Long paymentId) {
+        LoanPayment loanPayment = loanPaymentRepository
+                .findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Payment not found with id: " + paymentId));
+
+        return modelMapper.map(
+                loanPayment, LoanPaymentResponse.class);
+    }
+
+    @Override
+    public List<LoanPaymentResponse> getAllPayment() {
+        List<LoanPayment> payments = loanPaymentRepository.findAll();
+        return payments.stream()
+                .map(payment -> modelMapper.map(
+                        payment, LoanPaymentResponse.class))
+                .toList();
+    }
+
+    @Override
+    public LoanPaymentResponse updatePaymentStatus(
+            Long paymentId, PaymentStatusRequest request) {
+
+        LoanPayment loanPayment = loanPaymentRepository
+                .findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Payment not found with id: " + paymentId));
+
+        loanPayment.setPaymentStatus(request.getStatus());
+        LoanPayment savedPayment =
+                loanPaymentRepository.save(loanPayment);
+        return modelMapper.map(
+                savedPayment, LoanPaymentResponse.class);
     }
 
     private double roundToTwoDecimals(double value) {

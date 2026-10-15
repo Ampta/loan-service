@@ -43,7 +43,6 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     public LoanApplicationResponse applyLoan(Long userId, LoanApplicationRequest request) {
-
         LoanDeal loanDeal=loanMapper.toEntity(request);
 
         loanDeal.setUserId(userId);
