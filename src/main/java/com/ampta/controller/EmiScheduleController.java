@@ -3,6 +3,7 @@ package com.ampta.controller;
 import com.ampta.dto.request.EmiPaymentStatusRequest;
 import com.ampta.dto.request.EmiScheduleRequest;
 import com.ampta.dto.response.ApiResponse;
+import com.ampta.dto.response.EmiPaymentSummaryResponse;
 import com.ampta.dto.response.EmiScheduleResponse;
 import com.ampta.dto.response.PenaltyChargeResponse;
 import com.ampta.service.EmiScheduleService;
@@ -28,6 +29,7 @@ public class EmiScheduleController {
     private final EmiScheduleService emiScheduleService;
     private final PenaltyService penaltyService;
 
+
     @PostMapping
     public ResponseEntity<List<EmiScheduleResponse>> createEmiSchedule(
             @Valid @RequestBody EmiScheduleRequest request) {
@@ -35,7 +37,6 @@ public class EmiScheduleController {
         List<EmiScheduleResponse> response = emiScheduleService.createEmiSchedule(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-
 
 
     @GetMapping("/loan-account/{loanAccountId}")
@@ -52,36 +53,20 @@ public class EmiScheduleController {
     }
 
 
-    // Get all EMI schedule IDs by Loan Account ID
-    @GetMapping("/loan-account/{loanAccountId}/schedule-ids")
-    public ResponseEntity<ApiResponse<List<EmiScheduleResponse>>>
-    getEmiScheduleIdsByLoanAccountId(
-            @PathVariable Long loanAccountId) {
-        List<EmiScheduleResponse> scheduleIds = emiScheduleService.getEmiScheduleDetailsByLoanAccountId(loanAccountId);
+    @PatchMapping("/loan-account/{loanAccountId}/schedules/{emiScheduleId}/payment-status")
+    public ResponseEntity<ApiResponse<EmiScheduleResponse>> updatePaymentStatus(
+            @PathVariable Long loanAccountId,
+            @PathVariable Long emiScheduleId,
+            @Valid @RequestBody EmiPaymentStatusRequest request) {
+
+        EmiScheduleResponse response = emiScheduleService.updatePaymentStatus(loanAccountId, emiScheduleId, request);
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        true,
-                        "EMI schedule IDs retrieved successfully",
-                        scheduleIds
-                )
-        );
+                new ApiResponse<>(true, "EMI payment status updated successfully", response));
     }
-
-
-    @PatchMapping("/{emiScheduleId}/payment-status")
-    public ResponseEntity<ApiResponse<EmiScheduleResponse>>
-    updatePaymentStatus(@PathVariable Long emiScheduleId, @Valid @RequestBody EmiPaymentStatusRequest request) {
-        EmiScheduleResponse response = emiScheduleService.updatePaymentStatus(emiScheduleId, request);
-        return ResponseEntity.ok(new ApiResponse<>(
-                true, "EMI payment status updated successfully", response));
-    }
-
 
 
     @GetMapping("/loan-account/{loanAccountId}/schedules/{emiScheduleId}/penalties")
-    public ResponseEntity<ApiResponse<List<PenaltyChargeResponse>>>
-    getEmiPenalties(
-            @PathVariable Long loanAccountId,
+    public ResponseEntity<ApiResponse<List<PenaltyChargeResponse>>> getEmiPenalties(@PathVariable Long loanAccountId,
             @PathVariable Long emiScheduleId) {
         List<PenaltyChargeResponse> response = penaltyService.getEmiPenalties(
                 loanAccountId, emiScheduleId);
@@ -93,4 +78,13 @@ public class EmiScheduleController {
                 )
         );
     }
+
+    @GetMapping("/payment-summary")
+    public ResponseEntity<EmiPaymentSummaryResponse> getPaymentSummary(
+            @RequestParam Long loanAccountId,
+            @RequestParam Long emiScheduleId) {
+        EmiPaymentSummaryResponse response = emiScheduleService.getPaymentSummary(loanAccountId, emiScheduleId);
+        return ResponseEntity.ok(response);
+    }
+
 }

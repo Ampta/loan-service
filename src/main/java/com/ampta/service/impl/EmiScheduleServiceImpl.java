@@ -3,13 +3,16 @@ package com.ampta.service.impl;
 
 import com.ampta.dto.request.EmiPaymentStatusRequest;
 import com.ampta.dto.request.EmiScheduleRequest;
+import com.ampta.dto.response.EmiPaymentSummaryResponse;
 import com.ampta.dto.response.EmiScheduleResponse;
 import com.ampta.entity.EmiSchedule;
 import com.ampta.entity.LoanAccount;
 import com.ampta.entity.LoanDeal;
+import com.ampta.entity.PenaltyCharge;
 import com.ampta.exception.ResourceNotFoundException;
 import com.ampta.repository.EmiScheduleRepository;
 import com.ampta.repository.LoanAccountRepository;
+import com.ampta.repository.PenaltyChargeRepository;
 import com.ampta.service.EmiScheduleService;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,7 @@ public class EmiScheduleServiceImpl implements EmiScheduleService {
 
     private final EmiScheduleRepository emiScheduleRepository;
     private final LoanAccountRepository loanAccountRepository;
+    private final PenaltyChargeRepository penaltyChargeRepository;
     private final ModelMapper modelMapper;
 
     // Create EMI schedule
@@ -220,82 +225,210 @@ public class EmiScheduleServiceImpl implements EmiScheduleService {
 
     // Update EMI payment status
     @Override
+    @Transactional
     public EmiScheduleResponse updatePaymentStatus(
+            Long loanAccountId,
             Long emiScheduleId,
             EmiPaymentStatusRequest request) {
 
-        EmiSchedule schedule = emiScheduleRepository
-                .findById(emiScheduleId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "EMI schedule not found with id: "
-                                + emiScheduleId));
-
-        if (request == null || request.getPaymentStatus() == null
+        // 1. Validate request
+        if (request == null
+                || request.getPaymentStatus() == null
                 || request.getPaymentStatus().isBlank()) {
+
             throw new IllegalArgumentException(
                     "Payment status is required");
         }
 
-        String status = request.getPaymentStatus()
-                .trim().toUpperCase();
+        // 2. Check whether loan account exists
+        loanAccountRepository.findById(loanAccountId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Loan account not found with id: " + loanAccountId));
 
-        if (!List.of("PENDING", "PAID", "CANCELLED", "BOUNCED")
-                .contains(status)) {
+        // 3. Fetch EMI schedule
+        EmiSchedule schedule = emiScheduleRepository
+                .findById(emiScheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "EMI schedule not found with id: " + emiScheduleId));
+
+        // 4. Validate EMI belongs to this loan account
+        if (schedule.getLoanAccount() == null
+                || !schedule.getLoanAccount()
+                .getLoanAccountId()
+                .equals(loanAccountId)) {
+
             throw new IllegalArgumentException(
-                    "Invalid EMI payment status: " + status);
+                    "EMI schedule does not belong to loan account: "
+                            + loanAccountId);
         }
 
-        // Prevent changing a paid EMI back to pending or cancelled
-        if ("PAID".equalsIgnoreCase(schedule.getPaymentStatus())
-                && !"PAID".equals(status)) {
+        // 5. Normalize status
+        String status = request.getPaymentStatus()
+                .trim()
+                .toUpperCase(java.util.Locale.ROOT);
+
+        // 6. Validate allowed statuses
+        if (!List.of("PENDING", "CANCELLED", "BOUNCED")
+                .contains(status)) {
+
+            throw new IllegalArgumentException(
+                    "Invalid EMI payment status: " + status
+                            + ". PAID status must be set through the verified payment flow.");
+        }
+
+        String currentStatus = schedule.getPaymentStatus();
+
+        // 7. Never change an already paid EMI
+        if ("PAID".equalsIgnoreCase(currentStatus)) {
             throw new IllegalArgumentException(
                     "A paid EMI cannot be changed to another status");
         }
 
+        // 8. Update status
         schedule.setPaymentStatus(status);
 
-        if ("PAID".equals(status)) {
-            schedule.setPaidDate(LocalDateTime.now());
-        }
-
-        if (request.getCancellationReason() != null) {
+        // 9. Set cancellation reason only for cancellation
+        if ("CANCELLED".equals(status)) {
             schedule.setCancellationReason(
                     request.getCancellationReason());
         }
 
-        EmiSchedule savedSchedule = emiScheduleRepository.save(schedule);
-        return modelMapper.map(
-                savedSchedule, EmiScheduleResponse.class);
+        // 10. Save changes
+        EmiSchedule savedSchedule =
+                emiScheduleRepository.save(schedule);
+
+        // 11. Convert entity to response DTO
+        EmiScheduleResponse response =
+                modelMapper.map(
+                        savedSchedule,
+                        EmiScheduleResponse.class);
+
+        // 12. Explicitly set loan account ID
+        response.setLoanAccountId(loanAccountId);
+
+        return response;
     }
+
+
+
     // Get all EMI schedule details by Loan Account ID
-
+    @Override
     @Transactional(readOnly = true)
-    public List<EmiScheduleResponse> getEmiScheduleDetailsByLoanAccountId(
-            Long loanAccountId) {
+    public List<EmiScheduleResponse> getEmiScheduleDetailsByLoanAccountId(Long loanAccountId) {
+        // 1. Validate loan account
+        loanAccountRepository.findById(loanAccountId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Loan account not found with id: " + loanAccountId));
 
+        // 2. Fetch all EMI schedules for this loan account
         List<EmiSchedule> schedules =
                 emiScheduleRepository
                         .getEmiScheduleDetailsByLoanAccountId(loanAccountId);
 
+        // 3. Convert entities to response DTOs
         return schedules.stream()
                 .map(schedule -> {
+
                     EmiScheduleResponse response =
                             modelMapper.map(
                                     schedule,
-                                    EmiScheduleResponse.class
-                            );
+                                    EmiScheduleResponse.class);
 
-                    // Set the associated Loan Account ID
-                    if (schedule.getLoanAccount() != null) {
-                        response.setLoanAccountId(
-                                schedule.getLoanAccount()
-                                        .getLoanAccountId()
-                        );
-                    }
+                    // Explicitly set loan account ID
+                    response.setLoanAccountId(loanAccountId);
 
                     return response;
                 })
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+
+
+
+
+    @Override
+    public EmiPaymentSummaryResponse getPaymentSummary(Long loanAccountId, Long emiScheduleId) {
+
+        LoanAccount loanAccount = loanAccountRepository
+                .findById(loanAccountId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Loan account not found: " + loanAccountId));
+
+        EmiSchedule emiSchedule = emiScheduleRepository
+                .findById(emiScheduleId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "EMI schedule not found: " + emiScheduleId));
+
+        // Check whether this EMI belongs to the requested loan account
+        if (emiSchedule.getLoanAccount() == null
+                || !emiSchedule.getLoanAccount()
+                .getLoanAccountId()
+                .equals(loanAccount.getLoanAccountId())) {
+
+            throw new IllegalArgumentException(
+                    "EMI schedule does not belong to this loan account");
+        }
+
+        // Get EMI amount
+        Double emiAmount = emiSchedule.getEmiAmount();
+
+        // Default penalty details
+        Double bounceCharge = 0.0;
+        Double dailyPenalty = 0.0;
+        Integer overdueDays = 0;
+        Double penaltyAmount = 0.0;
+        String penaltyStatus = "NO_PENALTY";
+
+        // Find penalty using EMI schedule ID
+        Optional<PenaltyCharge> penaltyOptional =
+                penaltyChargeRepository
+                        .findByEmiSchedule_EmiScheduleId(emiScheduleId);
+
+        if (penaltyOptional.isPresent()) {
+            PenaltyCharge penalty = penaltyOptional.get();
+            // Get penalty details
+            bounceCharge = penalty.getBounceCharge() == null
+                    ? 0.0 : penalty.getBounceCharge();
+            dailyPenalty = penalty.getDailyPenalty() == null
+                    ? 0.0 : penalty.getDailyPenalty();
+            overdueDays = penalty.getOverdueDays() == null
+                    ? 0 : penalty.getOverdueDays();
+            penaltyStatus = penalty.getStatus() == null
+                    ? "UNPAID" : penalty.getStatus();
+
+            // Add penalty only when it is unpaid
+            if ("PENDING".equalsIgnoreCase(penaltyStatus)) {
+                penaltyAmount = penalty.getPenaltyAmount() == null
+                        ? 0.0 : penalty.getPenaltyAmount();
+            }
+        }
+
+        // Calculate total payable amount
+        Double totalPayable = emiAmount + penaltyAmount;
+
+        // Map EMI entity to response DTO
+        EmiPaymentSummaryResponse response =
+                modelMapper.map(
+                        emiSchedule,
+                        EmiPaymentSummaryResponse.class);
+
+        // Set response fields
+        response.setLoanAccountId(loanAccount.getLoanAccountId());
+        response.setEmiScheduleId(emiSchedule.getEmiScheduleId());
+        response.setEmiAmount(emiAmount);
+
+        response.setBounceCharge(bounceCharge);
+        response.setDailyPenalty(dailyPenalty);
+        response.setOverdueDays(overdueDays);
+
+        response.setPenaltyAmount(penaltyAmount);
+        response.setTotalPayable(totalPayable);
+        response.setEmiStatus(emiSchedule.getPaymentStatus());
+        response.setPenaltyStatus(penaltyStatus);
+
+        return response;
     }
 
 

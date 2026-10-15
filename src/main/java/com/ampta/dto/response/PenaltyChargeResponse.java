@@ -17,6 +17,9 @@ public class PenaltyChargeResponse {
     private Long penaltyChargeId;
     private Long emiScheduleId;
     private Long loanAccountId;
+    private Double bounceCharge;
+    private Double dailyPenalty;
+    private Integer overdueDays;
     private Double penaltyAmount;
     private String reason;
     private String status;

@@ -29,6 +29,16 @@ public class PenaltyCharge {
     @JoinColumn(name = "LoanAccountId", nullable = false)
     private LoanAccount loanAccount;
 
+
+    @Column(name = "bounce_charge", nullable = false)
+    private Double bounceCharge = 0.0;
+
+    @Column(name = "daily_penalty", nullable = false)
+    private Double dailyPenalty = 0.0;
+
+    @Column(name = "overdue_days", nullable = false)
+    private Integer overdueDays = 0;
+
     private Double penaltyAmount;
 
     private String reason;

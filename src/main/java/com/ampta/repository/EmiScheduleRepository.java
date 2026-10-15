@@ -10,15 +10,18 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
 public interface EmiScheduleRepository extends JpaRepository<EmiSchedule,Long> {
+
     Page<EmiSchedule> findByLoanAccount_LoanAccountId(
             Long loanAccountId,
             Pageable pageable
     );
     boolean existsByLoanAccount_LoanAccountId(Long loanAccountId);
+
     List<EmiSchedule> findByLoanAccount_LoanAccountIdAndPaymentStatusOrderByInstallmentNoAsc(Long loanAccountId, String pending);
     @Query("""
     SELECT e
@@ -29,5 +32,21 @@ public interface EmiScheduleRepository extends JpaRepository<EmiSchedule,Long> {
     List<EmiSchedule> getEmiScheduleDetailsByLoanAccountId(
             @Param("loanAccountId") Long loanAccountId
     );
+
+
+        @Query(value = """
+            SELECT *
+            FROM emi_schedules
+            WHERE due_date < CURRENT_DATE
+              AND UPPER(TRIM(payment_status))
+                  IN ('PENDING', 'BOUNCED')
+            """, nativeQuery = true)
+        List<EmiSchedule> findOverdueEmisForTesting();
+
+        List<EmiSchedule> findByPaymentStatusInAndDueDateBefore(
+                List<String> statuses,
+                LocalDate dueDate
+        );
+
 }
 
