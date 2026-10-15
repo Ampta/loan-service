@@ -4,6 +4,7 @@ import com.ampta.dto.response.ApiResponse;
 import com.ampta.dto.response.ScoreCardResponse;
 import com.ampta.service.ScoreCardService;
 
+import com.ampta.utils.Endpoints;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/score-cards")
+@RequestMapping(Endpoints.V1_SCORE_CARD)
 public class ScoreCardController {
 
     private final ScoreCardService scoreCardService;

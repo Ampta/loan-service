@@ -31,10 +31,10 @@ public class EligibilityController {
     public ResponseEntity<
             ApiResponse<List<OfficerEligibilityCustomerResponse>>
             > getManualReviewCustomers(
-            @RequestParam Long officerId) {
+            ) {
 
         List<OfficerEligibilityCustomerResponse> response =
-                eligibilityService.getManualReviewCustomers(officerId);
+                eligibilityService.getManualReviewCustomers();
 
         return ResponseEntity.ok(
                 new ApiResponse<>(

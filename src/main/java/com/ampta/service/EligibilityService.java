@@ -18,9 +18,7 @@ public interface EligibilityService {
             Long officerId
     );
 
-    List<OfficerEligibilityCustomerResponse> getManualReviewCustomers(
-            Long officerId
-    );
+    List<OfficerEligibilityCustomerResponse> getManualReviewCustomers();
 
     EligibilityResultResponse decideEligibility(
             Long eligibilityId,

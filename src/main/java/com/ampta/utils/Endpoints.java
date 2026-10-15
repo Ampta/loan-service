@@ -7,7 +7,6 @@ public class Endpoints {
 
     // SHIVAM: Auth, Score card, Eligibility, Notification, Ticket
     public static final String V1_AUTH = "/api/v1/auth";
-    public static final String V1_SCORE_CARD = "/api/v1/score-cards";
     public static final String V1_ELIGIBILITY = "/api/v1/eligibility";
     public static final String V1_NOTIFICATION = "/api/v1/notifications";
     public static final String V1_TICKET = "/api/v1/tickets";
@@ -23,6 +22,8 @@ public class Endpoints {
     public static final String V1_KYC = "/api/v1/kyc";
     public static final String V1_DOCUMENT = "/api/v1/documents";
     public static final String V1_CIBIL = "/api/v1/cibils";
+    public static final String V1_SCORE_CARD = "/api/v1/score-cards";
+
 
     // MANISH: Loan creation, Sanction letter, Disbursement
     public static final String V1_LOAN = "/api/v1/loans";

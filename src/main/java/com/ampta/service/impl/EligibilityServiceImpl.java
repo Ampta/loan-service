@@ -190,22 +190,18 @@ public class EligibilityServiceImpl implements EligibilityService {
             EligibilityCheckRequest request,
             Long officerId) {
 
-        requireOfficer(officerId);
+//        requireOfficer(officerId);
 
         return checkEligibility(request);
     }
 
-
-    // =====================================================
     // 3. OFFICER'S MANUAL-REVIEW LIST
-    // =====================================================
-
     @Override
     @Transactional(readOnly = true)
     public List<OfficerEligibilityCustomerResponse>
-    getManualReviewCustomers(Long officerId) {
+    getManualReviewCustomers() {
 
-        requireOfficer(officerId);
+//        requireOfficer(officerId);
 
         // Only latest CIBIL scores 650–799 are manually reviewed.
         List<CibilReport> reports =
@@ -232,8 +228,7 @@ public class EligibilityServiceImpl implements EligibilityService {
                     previousOptional.orElse(null);
 
             boolean sameScore =
-                    current != null
-                            && Objects.equals(current.getCibilScore(), score);
+                    current != null  && Objects.equals(current.getCibilScore(), score);
 
             // Hide customers whose current score has a final decision.
             if (sameScore && isFinalDecision(current)) {
@@ -276,7 +271,7 @@ public class EligibilityServiceImpl implements EligibilityService {
             Long officerId,
             EligibilityDecisionRequest request) {
 
-        requireOfficer(officerId);
+//        requireOfficer(officerId);
 
         EligibilityResult result =
                 eligibilityResultRepository.findById(eligibilityId)
@@ -453,32 +448,8 @@ public class EligibilityServiceImpl implements EligibilityService {
         }
     }
 
-
     // =====================================================
-    // 9. OFFICER VALIDATION
-    // =====================================================
-
-    private User requireOfficer(Long officerId) {
-
-        User officer = userRepository.findById(officerId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Officer not found: " + officerId
-                        )
-                );
-
-        if (officer.getRole() != Role.OFFICER) {
-            throw new IllegalArgumentException(
-                    "Only an OFFICER can perform this action"
-            );
-        }
-
-        return officer;
-    }
-
-
-    // =====================================================
-    // 10. DECISION HELPERS
+    // 9. DECISION HELPERS
     // =====================================================
 
     private boolean isAutoRejected(EligibilityResult result) {
@@ -505,7 +476,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 11. LOAN AMOUNT
+    // 10. LOAN AMOUNT
     // =====================================================
 
     private Double calculateLoanAmount(Integer score) {
@@ -523,7 +494,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 12. APPROVAL EMAIL + CUSTOMER NOTIFICATION
+    // 11. APPROVAL EMAIL + CUSTOMER NOTIFICATION
     // =====================================================
 
     private void sendApprovalEmail(
@@ -557,7 +528,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 13. REJECTION EMAIL + CUSTOMER NOTIFICATION
+    // 12. REJECTION EMAIL + CUSTOMER NOTIFICATION
     // =====================================================
 
     private void sendRejectionEmail(
@@ -591,7 +562,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 14. NOTIFY CUSTOMER'S LINKED USER ACCOUNT
+    // 13. NOTIFY CUSTOMER'S LINKED USER ACCOUNT
     // =====================================================
 
     private void notifyCustomer(
@@ -620,7 +591,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 15. NOTIFY OFFICER OF PENDING REVIEW
+    // 14. NOTIFY OFFICER OF PENDING REVIEW
     // =====================================================
 
     private void notifyOfficerReview(EligibilityResult result) {
@@ -646,7 +617,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 16. CUSTOMER NAME
+    // 15. CUSTOMER NAME
     // =====================================================
 
     private String customerName(Customer customer) {
@@ -664,7 +635,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 17. ENTITY TO RESPONSE USING MODELMAPPER
+    // 16. ENTITY TO RESPONSE USING MODELMAPPER
     // =====================================================
 
     private EligibilityResultResponse toResponse(
