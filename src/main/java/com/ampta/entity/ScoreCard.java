@@ -23,7 +23,7 @@ public class ScoreCard extends BaseEntity{
     private Integer scoreCardId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "`CustomerId`", nullable = false)
+    @JoinColumn(name =  "customer_id", nullable = false)
     private Customer customer;
 
     @Column(name = "`CurrentStatus`", length = 100)

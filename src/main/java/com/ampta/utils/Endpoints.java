@@ -21,7 +21,7 @@ public class Endpoints {
     // ANUPAMA: KYC, Document, Cibil
     public static final String V1_KYC = "/api/v1/kyc";
     public static final String V1_DOCUMENT = "/api/v1/documents";
-    public static final String V1_CIBIL = "/api/v1/cibils";
+    public static final String V1_CIBIL = "/api/v1/cibil";
     public static final String V1_SCORE_CARD = "/api/v1/score-cards";
 
 

@@ -4,20 +4,25 @@ import com.ampta.dto.request.EligibilityCheckRequest;
 import com.ampta.dto.request.EligibilityDecisionRequest;
 import com.ampta.dto.response.EligibilityResultResponse;
 import com.ampta.dto.response.OfficerEligibilityCustomerResponse;
+
 import com.ampta.entity.CibilReport;
 import com.ampta.entity.Customer;
 import com.ampta.entity.EligibilityResult;
 import com.ampta.entity.User;
+
 import com.ampta.entity.enums.NotificationType;
 import com.ampta.entity.enums.Role;
+
 import com.ampta.exception.CibilReportNotFoundException;
 import com.ampta.exception.RejectionReasonRequiredException;
 import com.ampta.exception.ResourceAlreadyExistsException;
 import com.ampta.exception.ResourceNotFoundException;
+
 import com.ampta.repository.CibilReportRepository;
 import com.ampta.repository.CustomerRepository;
 import com.ampta.repository.EligibilityResultRepository;
 import com.ampta.repository.UserRepository;
+
 import com.ampta.service.EligibilityService;
 import com.ampta.service.NotificationService;
 import com.ampta.utils.EmailService;
@@ -53,28 +58,25 @@ public class EligibilityServiceImpl implements EligibilityService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
-
-    // Inject the ModelMapper bean configured in ModelMapperConfig.
     private final ModelMapper modelMapper;
 
 
     // =====================================================
-    // 1. CHECK ELIGIBILITY
-    // =====================================================
-
+    // 1. CHECK ELIGIBILITY FOR SELECTED CUSTOMER
     @Override
-    public EligibilityResultResponse checkEligibility(
-            EligibilityCheckRequest request) {
+    public EligibilityResultResponse checkEligibility(Long customerId) {
 
+        // Fetch selected customer.
         Customer customer = customerRepository
-                .findById(request.getCustomerId())
+                .findById(customerId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Customer not found: "
-                                        + request.getCustomerId()
+                                        + customerId
                         )
                 );
 
+        // Fetch the customer's latest CIBIL report.
         CibilReport report = cibilReportRepository
                 .findFirstByCustomer_CustomerIdOrderByCheckDateDesc(
                         customer.getCustomerId()
@@ -94,6 +96,7 @@ public class EligibilityServiceImpl implements EligibilityService {
             );
         }
 
+        // Find the latest eligibility result for this customer.
         Optional<EligibilityResult> previousOptional =
                 eligibilityResultRepository
                         .findFirstByCustomer_CustomerIdOrderByEligibilityIdDesc(
@@ -114,8 +117,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
             if (sameScore) {
 
-                // Do not repeat emails for an already completed
-                // automatic approval.
+                // Avoid repeating emails for an already auto-approved result.
                 if (score >= AUTO_APPROVAL_SCORE
                         && Boolean.TRUE.equals(result.getIsEligible())
                         && !hasText(result.getRejectionReason())) {
@@ -123,16 +125,15 @@ public class EligibilityServiceImpl implements EligibilityService {
                     return toResponse(result);
                 }
 
-                // Do not repeat emails for an already completed
-                // automatic rejection.
+                // Avoid repeating emails for an already auto-rejected result.
                 if (score < AUTO_REJECTION_SCORE
                         && isAutoRejected(result)) {
 
                     return toResponse(result);
                 }
 
-                // For 650–799, preserve an existing officer decision
-                // or return the existing pending result.
+                // For 650–799, return the existing result.
+                // A final decision for this same score must not be repeated.
                 if (score >= AUTO_REJECTION_SCORE
                         && score < AUTO_APPROVAL_SCORE) {
 
@@ -145,7 +146,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
             } else {
 
-                // The latest CIBIL score has changed.
+                // The customer's latest CIBIL score has changed.
                 scoreChanged = true;
             }
 
@@ -155,12 +156,13 @@ public class EligibilityServiceImpl implements EligibilityService {
             result.setCustomer(customer);
         }
 
+        // Apply automatic decision or set manual-review status.
         applyScoreDecision(result, score);
 
         EligibilityResult saved =
                 eligibilityResultRepository.save(result);
 
-        // Automatic decision emails and customer notifications.
+        // Handle automatic decisions.
         if (score >= AUTO_APPROVAL_SCORE) {
 
             sendApprovalEmail(saved, true);
@@ -173,7 +175,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
         } else if (newRecord || scoreChanged) {
 
-            // Only 650–799 goes to officer review.
+            // Only scores 650–799 require officer review.
             notifyOfficerReview(saved);
         }
 
@@ -182,28 +184,16 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 2. CHECK THROUGH OFFICER API
+    // 2. GET CUSTOMERS REQUIRING MANUAL REVIEW
     // =====================================================
 
-    @Override
-    public EligibilityResultResponse checkEligibilityForOfficer(
-            EligibilityCheckRequest request,
-            Long officerId) {
-
-//        requireOfficer(officerId);
-
-        return checkEligibility(request);
-    }
-
-    // 3. OFFICER'S MANUAL-REVIEW LIST
     @Override
     @Transactional(readOnly = true)
     public List<OfficerEligibilityCustomerResponse>
     getManualReviewCustomers() {
 
-//        requireOfficer(officerId);
-
-        // Only latest CIBIL scores 650–799 are manually reviewed.
+        // Fetch latest reports in the manual-review score range.
+        // Expected range: 650 inclusive to 800 exclusive.
         List<CibilReport> reports =
                 cibilReportRepository.findLatestReportsBetweenScores(
                         AUTO_REJECTION_SCORE,
@@ -228,14 +218,19 @@ public class EligibilityServiceImpl implements EligibilityService {
                     previousOptional.orElse(null);
 
             boolean sameScore =
-                    current != null  && Objects.equals(current.getCibilScore(), score);
+                    current != null
+                            && Objects.equals(
+                            current.getCibilScore(),
+                            score
+                    );
 
-            // Hide customers whose current score has a final decision.
+            // Hide customers whose current score already has
+            // a final approval or rejection decision.
             if (sameScore && isFinalDecision(current)) {
                 continue;
             }
 
-            // Map common fields using ModelMapper.
+            // Map customer details into the response DTO.
             OfficerEligibilityCustomerResponse item =
                     modelMapper.map(
                             customer,
@@ -250,7 +245,8 @@ public class EligibilityServiceImpl implements EligibilityService {
             );
 
             item.setDecisionStatus(
-                    sameScore ? toResponse(current).getDecisionStatus()
+                    sameScore
+                            ? toResponse(current).getDecisionStatus()
                             : "NOT_CHECKED"
             );
 
@@ -262,16 +258,13 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 4. OFFICER APPROVES OR REJECTS
+    // 3. OFFICER APPROVES OR REJECTS A PENDING RESULT
     // =====================================================
 
     @Override
     public EligibilityResultResponse decideEligibility(
             Long eligibilityId,
-            Long officerId,
             EligibilityDecisionRequest request) {
-
-//        requireOfficer(officerId);
 
         EligibilityResult result =
                 eligibilityResultRepository.findById(eligibilityId)
@@ -290,6 +283,7 @@ public class EligibilityServiceImpl implements EligibilityService {
             );
         }
 
+        // Automatic decisions cannot be overridden by this endpoint.
         if (score >= AUTO_APPROVAL_SCORE) {
             throw new ResourceAlreadyExistsException(
                     "CIBIL score is 800 or above. "
@@ -304,7 +298,7 @@ public class EligibilityServiceImpl implements EligibilityService {
             );
         }
 
-        // This endpoint is exclusively for pending 650–799 scores.
+        // This endpoint is only for pending manual-review results.
         if (isFinalDecision(result)) {
             throw new ResourceAlreadyExistsException(
                     "This eligibility result has already been decided"
@@ -319,12 +313,14 @@ public class EligibilityServiceImpl implements EligibilityService {
 
         if (Boolean.TRUE.equals(request.getApproved())) {
 
+            // Officer approves the eligibility result.
             result.setIsEligible(true);
             result.setRejectionReason(null);
             result.setLoanAmount(calculateLoanAmount(score));
 
         } else {
 
+            // Officer must provide a rejection reason.
             String reason = request.getRejectionReason();
 
             if (!hasText(reason)) {
@@ -341,6 +337,7 @@ public class EligibilityServiceImpl implements EligibilityService {
         EligibilityResult saved =
                 eligibilityResultRepository.save(result);
 
+        // Email and in-app notification for the customer.
         if (Boolean.TRUE.equals(saved.getIsEligible())) {
 
             sendApprovalEmail(saved, false);
@@ -355,70 +352,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 5. GET ELIGIBILITY BY ID
-    // =====================================================
-
-    @Override
-    @Transactional(readOnly = true)
-    public EligibilityResultResponse getEligibilityById(
-            Long eligibilityId) {
-
-        EligibilityResult result =
-                eligibilityResultRepository.findById(eligibilityId)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Eligibility result not found: "
-                                                + eligibilityId
-                                )
-                        );
-
-        return toResponse(result);
-    }
-
-
-    // =====================================================
-    // 6. GET CUSTOMER'S ELIGIBILITY RESULT
-    // =====================================================
-
-    @Override
-    @Transactional(readOnly = true)
-    public EligibilityResultResponse getCustomerEligibility(
-            Long customerId) {
-
-        EligibilityResult result =
-                eligibilityResultRepository
-                        .findFirstByCustomer_CustomerIdOrderByEligibilityIdDesc(
-                                customerId
-                        )
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Eligibility result not found for customer: "
-                                                + customerId
-                                )
-                        );
-
-        return toResponse(result);
-    }
-
-
-    // =====================================================
-    // 7. GET ALL ELIGIBILITY RESULTS
-    // =====================================================
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<EligibilityResultResponse> getAllEligibility() {
-
-        return eligibilityResultRepository
-                .findAllByOrderByEligibilityIdDesc()
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-
-    // =====================================================
-    // 8. APPLY AUTOMATIC DECISION
+    // 4. APPLY AUTOMATIC DECISION
     // =====================================================
 
     private void applyScoreDecision(
@@ -429,27 +363,30 @@ public class EligibilityServiceImpl implements EligibilityService {
 
         if (score >= AUTO_APPROVAL_SCORE) {
 
+            // CIBIL score 800 or above: automatic approval.
             result.setIsEligible(true);
             result.setLoanAmount(calculateLoanAmount(score));
             result.setRejectionReason(null);
 
         } else if (score < AUTO_REJECTION_SCORE) {
 
+            // CIBIL score below 650: automatic rejection.
             result.setIsEligible(false);
             result.setLoanAmount(null);
             result.setRejectionReason(AUTO_REJECTION_REASON);
 
         } else {
 
-            // 650–799: officer review required.
+            // CIBIL score 650–799: officer review required.
             result.setIsEligible(false);
             result.setLoanAmount(calculateLoanAmount(score));
             result.setRejectionReason(null);
         }
     }
 
+
     // =====================================================
-    // 9. DECISION HELPERS
+    // 5. DECISION HELPERS
     // =====================================================
 
     private boolean isAutoRejected(EligibilityResult result) {
@@ -462,13 +399,11 @@ public class EligibilityServiceImpl implements EligibilityService {
         );
     }
 
-
     private boolean isFinalDecision(EligibilityResult result) {
 
         return Boolean.TRUE.equals(result.getIsEligible())
                 || hasText(result.getRejectionReason());
     }
-
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
@@ -476,7 +411,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 10. LOAN AMOUNT
+    // 6. LOAN AMOUNT CALCULATION
     // =====================================================
 
     private Double calculateLoanAmount(Integer score) {
@@ -494,7 +429,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 11. APPROVAL EMAIL + CUSTOMER NOTIFICATION
+    // 7. APPROVAL EMAIL + CUSTOMER NOTIFICATION
     // =====================================================
 
     private void sendApprovalEmail(
@@ -523,12 +458,18 @@ public class EligibilityServiceImpl implements EligibilityService {
                 ? "Your CIBIL score qualifies you for automatic eligibility approval."
                 : "Your loan eligibility has been approved by the loan officer.";
 
-        notifyCustomer(customer, type, title, message, result.getEligibilityId());
+        notifyCustomer(
+                customer,
+                type,
+                title,
+                message,
+                result.getEligibilityId()
+        );
     }
 
 
     // =====================================================
-    // 12. REJECTION EMAIL + CUSTOMER NOTIFICATION
+    // 8. REJECTION EMAIL + CUSTOMER NOTIFICATION
     // =====================================================
 
     private void sendRejectionEmail(
@@ -557,12 +498,18 @@ public class EligibilityServiceImpl implements EligibilityService {
                 : "Your loan eligibility was rejected. Reason: "
                 + result.getRejectionReason();
 
-        notifyCustomer(customer, type, title, message, result.getEligibilityId());
+        notifyCustomer(
+                customer,
+                type,
+                title,
+                message,
+                result.getEligibilityId()
+        );
     }
 
 
     // =====================================================
-    // 13. NOTIFY CUSTOMER'S LINKED USER ACCOUNT
+    // 9. NOTIFY CUSTOMER'S LINKED USER ACCOUNT
     // =====================================================
 
     private void notifyCustomer(
@@ -572,7 +519,9 @@ public class EligibilityServiceImpl implements EligibilityService {
             String message,
             Long eligibilityId) {
 
-        userRepository.findByCustomer_CustomerId(customer.getCustomerId())
+        userRepository.findByCustomer_CustomerId(
+                        customer.getCustomerId()
+                )
                 .ifPresentOrElse(
                         user -> notificationService.sendNotification(
                                 user.getUserId(),
@@ -591,7 +540,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 14. NOTIFY OFFICER OF PENDING REVIEW
+    // 10. NOTIFY OFFICER OF PENDING REVIEW
     // =====================================================
 
     private void notifyOfficerReview(EligibilityResult result) {
@@ -617,7 +566,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 15. CUSTOMER NAME
+    // 11. CUSTOMER NAME
     // =====================================================
 
     private String customerName(Customer customer) {
@@ -635,7 +584,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
 
     // =====================================================
-    // 16. ENTITY TO RESPONSE USING MODELMAPPER
+    // 12. ENTITY TO RESPONSE USING MODELMAPPER
     // =====================================================
 
     private EligibilityResultResponse toResponse(
@@ -647,8 +596,6 @@ public class EligibilityServiceImpl implements EligibilityService {
                         EligibilityResultResponse.class
                 );
 
-        // ModelMapper maps direct fields. Nested Customer fields
-        // are explicitly populated here.
         Customer customer = result.getCustomer();
 
         response.setCustomerId(customer.getCustomerId());

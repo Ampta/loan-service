@@ -249,7 +249,7 @@ public class CibilServiceImpl implements CibilService {
 
         // Automatically evaluate eligibility after generating CIBIL score.
         eligibilityService.checkEligibility(
-                new EligibilityCheckRequest(customerId)
+                customerId
         );
 
         // 9. Map entity to response DTO using ModelMapperConfig

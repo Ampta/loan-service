@@ -9,26 +9,13 @@ import java.util.List;
 
 public interface EligibilityService {
 
-    EligibilityResultResponse checkEligibility(
-            EligibilityCheckRequest request
-    );
+    List<OfficerEligibilityCustomerResponse>
+    getManualReviewCustomers();
 
-    EligibilityResultResponse checkEligibilityForOfficer(
-            EligibilityCheckRequest request,
-            Long officerId
-    );
-
-    List<OfficerEligibilityCustomerResponse> getManualReviewCustomers();
+    EligibilityResultResponse checkEligibility(Long customerId);
 
     EligibilityResultResponse decideEligibility(
             Long eligibilityId,
-            Long officerId,
             EligibilityDecisionRequest request
     );
-
-    EligibilityResultResponse getEligibilityById(Long eligibilityId);
-
-    EligibilityResultResponse getCustomerEligibility(Long customerId);
-
-    List<EligibilityResultResponse> getAllEligibility();
 }
