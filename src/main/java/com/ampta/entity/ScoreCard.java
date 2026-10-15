@@ -19,31 +19,31 @@ import java.time.LocalDateTime;
 public class ScoreCard extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "`ScoreCardId`")
+//    @Column(name = "`ScoreCardId`")
     private Integer scoreCardId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name =  "customer_id", nullable = false)
     private Customer customer;
 
-    @Column(name = "`CurrentStatus`", length = 100)
+//    @Column(name = "`CurrentStatus`", length = 100)
     private String currentStatus;
 
-    @Column(name = "`RejectionReason`", length = 1000)
+//    @Column(name = "`RejectionReason`", length = 1000)
     private String rejectionReason;
 
-    @Column(name = "`AppliedDate`")
+//    @Column(name = "`AppliedDate`")
     private LocalDateTime appliedDate;
 
-    @Column(name = "`CibilScore`")
+//    @Column(name = "`CibilScore`")
     private Integer cibilScore;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "`RiskCategory`", length = 50)
+//    @Column(name = "`RiskCategory`", length = 50)
     private RiskCategory riskCategory;
 
     @Column(
-            name = "`EligibleLoanAmount`",
+//            name = "`EligibleLoanAmount`",
             columnDefinition = "DECIMAL(18,2)"
     )
     private Double eligibleLoanAmount;

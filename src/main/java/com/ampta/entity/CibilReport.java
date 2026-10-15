@@ -24,7 +24,7 @@ public class CibilReport extends BaseEntity{
     private Long cibilReportId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "CustomerId", nullable = false)
+    @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
 //    @Column(length = 20)

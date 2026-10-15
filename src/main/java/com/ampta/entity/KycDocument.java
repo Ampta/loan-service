@@ -15,7 +15,7 @@ public class KycDocument extends BaseEntity{
     private Long documentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customerId", nullable = false)
+    @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
     @Column(nullable = false)
