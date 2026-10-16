@@ -30,7 +30,7 @@ public class KycController {
     // CUSTOMER-SIDE APIs
 
     // 1. Upload a KYC document
-    @PostMapping(value = "/customers/{customerId}/documents",
+    @PostMapping(value = "/customers/{customerId}",
     consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<KycDocumentResponse>> uploadDocument(@PathVariable Long customerId,
                                               @Valid @ModelAttribute KycDocumentRequest request) throws IOException{

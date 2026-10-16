@@ -123,5 +123,22 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> response = new ApiResponse<>(false, "An unexpected error occurred: " + ex.getMessage(), null);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+    @ExceptionHandler(ScoreCardGenerationNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleScoreCardGenerationNotAllowed(
+            ScoreCardGenerationNotAllowedException ex) {
+
+        log.warn("Scorecard generation denied: {}", ex.getMessage());
+
+        ApiResponse<Void> response = new ApiResponse<>(
+                false,
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
+    }
+
 
 }

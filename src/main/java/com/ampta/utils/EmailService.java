@@ -59,4 +59,6 @@ public interface EmailService {
             Integer cibilScore,
             String rejectionReason
     );
+
+
 }

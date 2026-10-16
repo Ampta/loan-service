@@ -1,3 +1,4 @@
+
 package com.ampta.service.impl;
 
 import com.ampta.dto.response.OfficerEligibilityCustomerResponse;
@@ -13,6 +14,7 @@ import com.ampta.entity.enums.RiskCategory;
 import com.ampta.exception.CibilReportNotFoundException;
 import com.ampta.exception.ResourceNotFoundException;
 
+import com.ampta.exception.ScoreCardGenerationNotAllowedException;
 import com.ampta.repository.CibilReportRepository;
 import com.ampta.repository.CustomerRepository;
 import com.ampta.repository.EligibilityResultRepository;
@@ -48,7 +50,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
     private final EligibilityResultRepository eligibilityResultRepository;
     private final ModelMapper modelMapper;
 
-
     // =====================================================
     // 1. GET ALL CUSTOMERS FOR OFFICER'S SCORECARD LIST
     // =====================================================
@@ -73,7 +74,7 @@ public class ScoreCardServiceImpl implements ScoreCardService {
 
             item.setCustomerName(customerName(customer));
 
-            // Fetch the latest CIBIL report, if available.
+            // Fetch latest CIBIL report, if available.
             Optional<CibilReport> reportOptional =
                     cibilReportRepository
                             .findFirstByCustomer_CustomerIdOrderByCheckDateDesc(
@@ -86,7 +87,7 @@ public class ScoreCardServiceImpl implements ScoreCardService {
 
             item.setCibilScore(score);
 
-            // Fetch the latest eligibility result, if available.
+            // Fetch latest eligibility result.
             Optional<EligibilityResult> eligibilityOptional =
                     eligibilityResultRepository
                             .findFirstByCustomer_CustomerIdOrderByEligibilityIdDesc(
@@ -130,17 +131,16 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         return response;
     }
 
-
     // =====================================================
-    // 2. VIEW SCORECARD
-    // Automatically create or refresh it when required.
+    // 2. GENERATE OR REFRESH SCORECARD
+    // ONLY WHEN ELIGIBILITY IS APPROVED
     // =====================================================
 
     @Override
     public ScoreCardResponse getOrGenerateScoreCard(
             Long customerId) {
 
-        // Step 1: Find the selected customer.
+        // Step 1: Find customer.
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -148,7 +148,7 @@ public class ScoreCardServiceImpl implements ScoreCardService {
                         )
                 );
 
-        // Step 2: Find the customer's latest CIBIL report.
+        // Step 2: Find latest CIBIL report.
         CibilReport cibilReport = cibilReportRepository
                 .findFirstByCustomer_CustomerIdOrderByCheckDateDesc(
                         customerId
@@ -168,7 +168,7 @@ public class ScoreCardServiceImpl implements ScoreCardService {
             );
         }
 
-        // Step 3: Find the latest eligibility result.
+        // Step 3: Find latest eligibility result.
         EligibilityResult eligibility = eligibilityResultRepository
                 .findFirstByCustomer_CustomerIdOrderByEligibilityIdDesc(
                         customerId
@@ -181,21 +181,30 @@ public class ScoreCardServiceImpl implements ScoreCardService {
                         )
                 );
 
-        // Do not combine a new CIBIL score with an older eligibility result.
+        // Step 4: Ensure eligibility was checked for the latest CIBIL score.
         if (!Objects.equals(eligibility.getCibilScore(), score)) {
-            throw new IllegalStateException(
+            throw new ScoreCardGenerationNotAllowedException(
                     "Eligibility has not been checked for the latest "
                             + "CIBIL score. Check eligibility first."
             );
         }
 
-        // Step 4: Update the latest scorecard or create one if absent.
+        // Step 5: Generate scorecard ONLY if approved.
+        if (!Boolean.TRUE.equals(eligibility.getIsEligible())) {
+            throw new ScoreCardGenerationNotAllowedException(
+                    "Scorecard cannot be generated because loan eligibility "
+                            + "has not been approved."
+            );
+        }
+
+        // Step 6: Fetch existing scorecard or create a new one.
         ScoreCard scoreCard = scoreCardRepository
                 .findFirstByCustomer_CustomerIdOrderByScoreCardIdDesc(
                         customerId
                 )
                 .orElseGet(ScoreCard::new);
 
+        // Step 7: Populate scorecard fields.
         scoreCard.setCustomer(customer);
         scoreCard.setCibilScore(score);
         scoreCard.setRiskCategory(calculateRiskCategory(score));
@@ -207,28 +216,27 @@ public class ScoreCardServiceImpl implements ScoreCardService {
                 eligibility.getLoanAmount()
         );
 
-        // Preserve the existing date when refreshing the scorecard.
+        // Preserve the existing date when refreshing.
         if (scoreCard.getAppliedDate() == null) {
             scoreCard.setAppliedDate(LocalDateTime.now());
         }
 
-        // Step 5: Save the scorecard.
+        // Step 8: Save scorecard.
         ScoreCard saved = scoreCardRepository.save(scoreCard);
 
         log.info(
-                "Scorecard created/refreshed for customerId={}, scoreCardId={}",
+                "Scorecard created/refreshed for approved customerId={}, "
+                        + "scoreCardId={}",
                 customerId,
                 saved.getScoreCardId()
         );
 
-        // Step 6: Return the scorecard response.
+        // Step 9: Return response.
         return toResponse(saved);
     }
 
-
     // =====================================================
-    // 3. RESOLVE ELIGIBILITY STATUS
-    // Used when building the customer list.
+    // 3. RESOLVE ELIGIBILITY STATUS FOR OFFICER LIST
     // =====================================================
 
     private String resolveEligibilityStatus(
@@ -237,7 +245,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         Integer score = eligibility.getCibilScore();
 
         if (Boolean.TRUE.equals(eligibility.getIsEligible())) {
-
             return score != null && score >= AUTO_APPROVAL_SCORE
                     ? "AUTO_APPROVED"
                     : "APPROVED";
@@ -246,7 +253,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         if (score != null
                 && score < AUTO_REJECTION_SCORE
                 && hasText(eligibility.getRejectionReason())) {
-
             return "AUTO_REJECTED";
         }
 
@@ -257,9 +263,9 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         return "PENDING_REVIEW";
     }
 
-
     // =====================================================
     // 4. RESOLVE SCORECARD STATUS
+    // Called only for approved eligibility.
     // =====================================================
 
     private String resolveStatus(EligibilityResult eligibility) {
@@ -267,7 +273,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         Integer score = eligibility.getCibilScore();
 
         if (Boolean.TRUE.equals(eligibility.getIsEligible())) {
-
             return score != null && score >= AUTO_APPROVAL_SCORE
                     ? "AUTO_APPROVED"
                     : "APPROVED";
@@ -276,7 +281,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         if (score != null
                 && score < AUTO_REJECTION_SCORE
                 && hasText(eligibility.getRejectionReason())) {
-
             return "AUTO_REJECTED";
         }
 
@@ -286,7 +290,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
 
         return "PENDING_REVIEW";
     }
-
 
     // =====================================================
     // 5. CALCULATE RISK CATEGORY
@@ -305,7 +308,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         return RiskCategory.HIGH;
     }
 
-
     // =====================================================
     // 6. CUSTOMER NAME
     // =====================================================
@@ -323,7 +325,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
         return (firstName + " " + lastName).trim();
     }
 
-
     // =====================================================
     // 7. CHECK NON-EMPTY TEXT
     // =====================================================
@@ -331,7 +332,6 @@ public class ScoreCardServiceImpl implements ScoreCardService {
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
     }
-
 
     // =====================================================
     // 8. ENTITY TO RESPONSE USING MODELMAPPER

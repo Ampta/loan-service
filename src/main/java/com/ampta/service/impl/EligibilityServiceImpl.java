@@ -61,7 +61,7 @@ public class EligibilityServiceImpl implements EligibilityService {
     private final ModelMapper modelMapper;
 
 
-    // =====================================================
+
     // 1. CHECK ELIGIBILITY FOR SELECTED CUSTOMER
     @Override
     public EligibilityResultResponse checkEligibility(Long customerId) {
@@ -78,7 +78,7 @@ public class EligibilityServiceImpl implements EligibilityService {
 
         // Fetch the customer's latest CIBIL report.
         CibilReport report = cibilReportRepository
-                .findFirstByCustomer_CustomerIdOrderByCheckDateDesc(
+                .findTopByCustomer_CustomerIdOrderByCheckDateDesc(
                         customer.getCustomerId()
                 )
                 .orElseThrow(() ->

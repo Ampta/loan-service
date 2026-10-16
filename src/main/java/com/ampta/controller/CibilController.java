@@ -25,13 +25,9 @@ public class CibilController {
     public ResponseEntity<ApiResponse<CibilScoreResponse>> checkScore(
             @PathVariable Long customerId) {
 
-        log.info(
-                "CIBIL score calculation requested for customerId={}",
-                customerId
-        );
+        log.info("CIBIL score calculation requested for customerId={}", customerId);
 
-        CibilScoreResponse response =
-                cibilService.calculateCibilScore(customerId);
+        CibilScoreResponse response = cibilService.calculateCibilScore(customerId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -54,7 +50,7 @@ public class CibilController {
         );
 
         CibilScoreResponse response =
-                cibilService.getLatestCibilScore(customerId);
+                cibilService.calculateCibilScore(customerId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(

@@ -11,5 +11,5 @@ public interface CibilService {
     CibilScoreResponse calculateCibilScore(Long customerId);
 
     // Fetch customer's latest CIBIL score and status
-    CibilScoreResponse getLatestCibilScore(Long customerId);
+//    CibilScoreResponse getLatestCibilScore(Long customerId);
 }

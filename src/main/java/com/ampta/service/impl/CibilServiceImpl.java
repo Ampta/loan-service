@@ -405,31 +405,31 @@ public class CibilServiceImpl implements CibilService {
         }
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public CibilScoreResponse getLatestCibilScore(Long customerId) {
-
-        log.info(
-                "Fetching latest CIBIL score for customerId={}",
-                customerId
-        );
-
-        // Verify customer exists
-        fetchCustomer(customerId);
-
-        // Fetch latest report
-        CibilReport report = cibilReportRepository
-                .findTopByCustomer_CustomerIdOrderByCheckDateDesc(
-                        customerId
-                )
-                .orElseThrow(() -> new CibilReportNotFoundException(
-                        "CIBIL report not found for customerId: "
-                                + customerId
-                ));
-
-        // Map entity to response DTO
-        return mapToResponse(report);
-    }
+//    @Override
+//    @Transactional(readOnly = true)
+//    public CibilScoreResponse getLatestCibilScore(Long customerId) {
+//
+//        log.info(
+//                "Fetching latest CIBIL score for customerId={}",
+//                customerId
+//        );
+//
+//        // Verify customer exists
+//        fetchCustomer(customerId);
+//
+//        // Fetch latest report
+//        CibilReport report = cibilReportRepository
+//                .findTopByCustomer_CustomerIdOrderByCheckDateDesc(
+//                        customerId
+//                )
+//                .orElseThrow(() -> new CibilReportNotFoundException(
+//                        "CIBIL report not found for customerId: "
+//                                + customerId
+//                ));
+//
+//        // Map entity to response DTO
+//        return mapToResponse(report);
+//    }
 
     private CibilScoreResponse mapToResponse(CibilReport report) {
 
