@@ -1,3 +1,4 @@
+
 package com.ampta.service.impl;
 
 import com.ampta.dto.request.LoanPaymentRequest;
@@ -56,7 +57,7 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                         "EMI schedule not found with id: "
                                 + request.getEmiScheduleId()));
 
-        // 4. Verify that EMI belongs to this loan account
+        // 4. Verify EMI belongs to the loan account
         if (schedule.getLoanAccount() == null
                 || !schedule.getLoanAccount().getLoanAccountId()
                 .equals(account.getLoanAccountId())) {
@@ -65,7 +66,7 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                     "EMI does not belong to this loan account");
         }
 
-        // 5. Check payment status
+        // 5. Check EMI status
         if (!"PENDING".equalsIgnoreCase(schedule.getPaymentStatus())) {
             throw new BadRequestException(
                     "This EMI is not pending payment");
@@ -85,7 +86,9 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                     "Payment amount and EMI amount must be positive");
         }
 
-        if (Math.abs(paymentAmount - roundToTwoDecimals(emiAmount)) > 0.001) {
+        if (Math.abs(
+                paymentAmount - roundToTwoDecimals(emiAmount)) > 0.001) {
+
             throw new BadRequestException(
                     "Invalid EMI payment amount. Expected: "
                             + roundToTwoDecimals(emiAmount));
@@ -135,7 +138,7 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
 
         emiScheduleRepository.save(schedule);
 
-        // 11. Check whether the loan can be closed
+        // 11. Check whether loan can be closed
         List<EmiSchedule> pendingEmis = emiScheduleRepository
                 .findByLoanAccount_LoanAccountIdAndPaymentStatusOrderByInstallmentNoAsc(
                         account.getLoanAccountId(), "PENDING");
@@ -146,7 +149,7 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
 
         loanAccountRepository.save(account);
 
-        // 12. Create payment record
+        // 12. Create EMI payment record
         LoanPayment payment = new LoanPayment();
 
         payment.setLoanAccount(account);
@@ -165,10 +168,9 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
 
         payment.setPaymentStatus("SUCCESS");
 
-        // 13. Save payment
         LoanPayment savedPayment = loanPaymentRepository.save(payment);
 
-        // 14. Build response with correct Long IDs
+        // 13. Return response
         return LoanPaymentResponse.builder()
                 .paymentId(savedPayment.getPaymentId())
                 .loanAccountId(account.getLoanAccountId())
@@ -180,6 +182,36 @@ public class LoanPaymentServiceImpl implements LoanPaymentService {
                 .paymentName(savedPayment.getPaymentName())
                 .paymentMode(savedPayment.getPaymentMode())
                 .build();
+    }
+
+    // Common method for partial closure and foreclosure payment records
+    @Override
+    public LoanPayment recordNonEmiPayment(
+            LoanAccount account,
+            Double amount,
+            String paymentName,
+            String paymentMode) {
+
+        if (account == null || amount == null || amount <= 0) {
+            throw new IllegalArgumentException(
+                    "Valid loan account and payment amount are required");
+        }
+
+        LoanPayment payment = new LoanPayment();
+
+        payment.setLoanAccount(account);
+        payment.setEmiSchedule(null);
+        payment.setPaymentAmount(roundToTwoDecimals(amount));
+
+        payment.setPaymentName(
+                paymentName != null ? paymentName : "LOAN_CLOSURE_PAYMENT");
+
+        payment.setPaymentMode(
+                paymentMode != null ? paymentMode : "ONLINE");
+
+        payment.setPaymentStatus("SUCCESS");
+
+        return loanPaymentRepository.save(payment);
     }
 
     private double roundToTwoDecimals(double value) {
