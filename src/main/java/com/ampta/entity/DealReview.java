@@ -30,11 +30,11 @@ public class DealReview {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "officer_id",
-            referencedColumnName = "customer_id",
+            referencedColumnName = "user_id",
             nullable = false,
             foreignKey = @ForeignKey(name = "FK_DealReviews_Customers")
     )
-    private Customer officer;
+    private User officer;
 
     @Column(name = "status", length = 50)
     private String status;

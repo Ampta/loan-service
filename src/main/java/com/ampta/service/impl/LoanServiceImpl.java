@@ -6,7 +6,6 @@ import com.ampta.dto.request.LoanApplicationRequest;
 import com.ampta.dto.response.LoanApplicationResponse;
 import com.ampta.entity.Customer;
 import com.ampta.entity.LoanDeal;
-import com.ampta.entity.ScoreCard;
 import com.ampta.entity.enums.LoanStatus;
 import com.ampta.entity.enums.LoanType;
 import com.ampta.exception.LoanNotFoundException;
@@ -46,8 +45,7 @@ public class LoanServiceImpl implements LoanService {
         }
 
         throw new IllegalArgumentException(
-                "This loan type is not available: " + loanType
-        );
+                "This loan type is not available: " + loanType);
     }
 
     @Override
@@ -60,9 +58,7 @@ public class LoanServiceImpl implements LoanService {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Customer not found with ID: " + customerId
-                        )
-                );
+                                "Customer not found with ID: " + customerId));
 
         // 2. Convert request DTO to LoanDeal entity
         LoanDeal loanDeal = loanMapper.toEntity(request);
@@ -78,8 +74,7 @@ public class LoanServiceImpl implements LoanService {
         double emi = emiCalculationService.calculateEmi(
                 request.getLoanAmount(),
                 interestRate,
-                request.getTenureMonths()
-        );
+                request.getTenureMonths());
 
         loanDeal.setEmiAmount(emi);
 

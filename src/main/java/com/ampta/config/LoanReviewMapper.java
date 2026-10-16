@@ -30,7 +30,7 @@ public class LoanReviewMapper {
         if (dealReview.getOfficer() != null) {
 
             response.setOfficerId(
-                    dealReview.getOfficer().getCustomerId()
+                    dealReview.getOfficer().getUserId()
             );
         }
 

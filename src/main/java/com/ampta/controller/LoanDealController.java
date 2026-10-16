@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping(Endpoints.V1_LOAN)
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class LoanDealController {
 
     private final LoanServiceImpl loanService;

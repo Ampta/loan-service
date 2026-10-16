@@ -11,12 +11,9 @@ import java.time.LocalDateTime;
 @Table(
         name = "disbursements",
         uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "UK_Disbursements_DealId",
-                        columnNames = "deal_id"
-                )
-        }
-)
+                @UniqueConstraint(name = "UK_Disbursements_DealId",
+                        columnNames = "deal_id")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,8 +32,7 @@ public class Disbursement extends BaseEntity {
             referencedColumnName = "deal_id",
             nullable = false,
             unique = true,
-            foreignKey = @ForeignKey(name = "FK_Disbursements_LoanDeal")
-    )
+            foreignKey = @ForeignKey(name = "FK_Disbursements_LoanDeal"))
     private LoanDeal loanDeal;
 
     @Column(name = "disburse_amount", nullable = false)

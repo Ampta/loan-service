@@ -11,5 +11,4 @@ import java.util.List;
 @Repository
 public interface DealReviewRepository extends JpaRepository<DealReview, Long> {
 
-    List<DealReview> findByOfficer_CustomerId(Long customerId);
 }
