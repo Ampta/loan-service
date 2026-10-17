@@ -1,9 +1,14 @@
 package com.ampta.service;
 
-import com.ampta.entity.ScoreCard;
+import com.ampta.dto.response.OfficerEligibilityCustomerResponse;
+import com.ampta.dto.response.ScoreCardResponse;
+
+import java.util.List;
 
 public interface ScoreCardService {
 
-    ScoreCard createScoreCard(ScoreCard scoreCard);
+    List<OfficerEligibilityCustomerResponse>
+    getCustomersForScoreCards();
 
+    ScoreCardResponse getOrGenerateScoreCard(Long customerId);
 }

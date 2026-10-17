@@ -1,0 +1,15 @@
+
+package com.ampta.repository;
+
+import com.ampta.entity.DealReview;
+import com.ampta.entity.enums.LoanStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface DealReviewRepository extends JpaRepository<DealReview, Long> {
+
+    List<DealReview> findByOfficer_CustomerId(Long customerId);
+}
